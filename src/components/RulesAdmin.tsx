@@ -11,6 +11,7 @@ const RulesAdmin = ({ isAdmin }: RulesAdminProps) => {
   const [startDate, setStartDate] = useState(current?.startDate ?? "");
   const [endDate, setEndDate] = useState(current?.endDate ?? "");
   const [editableRules, setEditableRules] = useState(rules);
+  const [saved, setSaved] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -38,10 +39,21 @@ const RulesAdmin = ({ isAdmin }: RulesAdminProps) => {
             <label className="mb-1 block text-xs font-bold text-muted-foreground">Edit Ruleset</label>
             <textarea
               value={editableRules}
-              onChange={(e) => setEditableRules(e.target.value)}
+              onChange={(e) => { setEditableRules(e.target.value); setSaved(false); }}
               rows={12}
               className="w-full rounded-lg border bg-muted/30 px-4 py-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
             />
+            <div className="mt-2 flex items-center gap-3">
+              <button
+                onClick={() => setSaved(true)}
+                className="rounded-lg bg-primary px-5 py-2 text-sm font-bold text-primary-foreground transition-transform hover:scale-105"
+              >
+                Save Rules
+              </button>
+              {saved && (
+                <span className="text-xs font-semibold text-green-600">✓ Rules saved successfully</span>
+              )}
+            </div>
           </div>
         </div>
       )}
