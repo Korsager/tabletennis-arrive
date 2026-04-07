@@ -1,15 +1,23 @@
 import { useState } from "react";
-import { tournaments, rules } from "@/data/mockData";
+import { rules } from "@/data/mockData";
+
+interface Tournament {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  active: boolean;
+}
 
 interface RulesAdminProps {
   isAdmin: boolean;
+  tournament?: Tournament;
 }
 
-const RulesAdmin = ({ isAdmin }: RulesAdminProps) => {
-  const current = tournaments.find((t) => t.active);
-  const [tournamentName, setTournamentName] = useState(current?.name ?? "");
-  const [startDate, setStartDate] = useState(current?.startDate ?? "");
-  const [endDate, setEndDate] = useState(current?.endDate ?? "");
+const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
+  const [tournamentName, setTournamentName] = useState(tournament?.name ?? "");
+  const [startDate, setStartDate] = useState(tournament?.start_date ?? "");
+  const [endDate, setEndDate] = useState(tournament?.end_date ?? "");
   const [editableRules, setEditableRules] = useState(rules);
   const [saved, setSaved] = useState(false);
 
@@ -60,10 +68,10 @@ const RulesAdmin = ({ isAdmin }: RulesAdminProps) => {
 
       <div className="rounded-2xl border bg-card p-6 shadow-sm">
         <h2 className="mb-2 text-lg font-extrabold text-primary">Tournament Info</h2>
-        {current && (
+        {tournament && (
           <div className="mb-4 flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full bg-muted px-3 py-1 font-semibold">{current.name}</span>
-            <span className="text-muted-foreground">{current.startDate} → {current.endDate}</span>
+            <span className="rounded-full bg-muted px-3 py-1 font-semibold">{tournament.name}</span>
+            <span className="text-muted-foreground">{tournament.start_date} → {tournament.end_date}</span>
             <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-bold text-accent">Best of 5</span>
           </div>
         )}

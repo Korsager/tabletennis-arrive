@@ -1,10 +1,19 @@
-import { matches, Match } from "@/data/mockData";
+import { MatchRow } from "@/hooks/useData";
 
 interface MatchesViewProps {
-  onReportScore: (match: Match) => void;
+  matches: MatchRow[];
+  onReportScore: (match: MatchRow) => void;
 }
 
-const MatchesView = ({ onReportScore }: MatchesViewProps) => {
+const MatchesView = ({ matches, onReportScore }: MatchesViewProps) => {
+  if (matches.length === 0) {
+    return (
+      <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">
+        <p className="text-muted-foreground">No matches scheduled yet for this tournament.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {matches.map((match) => (
@@ -24,7 +33,7 @@ const MatchesView = ({ onReportScore }: MatchesViewProps) => {
           <div className="flex flex-1 flex-col p-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1">
-                <p className="text-sm font-bold">{match.player1}</p>
+                <p className="text-sm font-bold">{match.player1?.display_name ?? "TBD"}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg border bg-muted/50 text-lg font-extrabold">
@@ -36,7 +45,7 @@ const MatchesView = ({ onReportScore }: MatchesViewProps) => {
                 </span>
               </div>
               <div className="flex-1 text-right">
-                <p className="text-sm font-bold">{match.player2}</p>
+                <p className="text-sm font-bold">{match.player2?.display_name ?? "TBD"}</p>
               </div>
             </div>
           </div>

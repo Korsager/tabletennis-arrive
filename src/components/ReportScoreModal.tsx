@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { X } from "lucide-react";
-import { Match } from "@/data/mockData";
+import { MatchRow, useUpdateMatchScore } from "@/hooks/useData";
+import { toast } from "sonner";
 
 interface ReportScoreModalProps {
-  match: Match;
+  match: MatchRow;
   onClose: () => void;
 }
 
@@ -12,6 +13,31 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
   const [s2, setS2] = useState("");
   const [isForfeit, setIsForfeit] = useState(false);
   const [forfeitBy, setForfeitBy] = useState("");
+  const mutation = useUpdateMatchScore();
+
+  const handleSave = () => {
+    const score1 = parseInt(s1);
+    const score2 = parseInt(s2);
+    if (isNaN(score1) || isNaN(score2)) {
+      toast.error("Please enter valid scores");
+      return;
+    }
+    mutation.mutate(
+      {
+        matchId: match.id,
+        score1,
+        score2,
+        forfeitBy: isForfeit ? forfeitBy || null : null,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Score reported!");
+          onClose();
+        },
+        onError: (err) => toast.error("Failed to save: " + err.message),
+      }
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm" onClick={onClose}>
@@ -22,7 +48,7 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
         <h2 className="mb-6 text-lg font-extrabold text-primary">Report Score</h2>
         <div className="flex items-center gap-4">
           <div className="flex-1 text-center">
-            <p className="mb-2 text-sm font-bold">{match.player1}</p>
+            <p className="mb-2 text-sm font-bold">{match.player1?.display_name ?? "Player 1"}</p>
             <input
               value={s1}
               onChange={(e) => setS1(e.target.value)}
@@ -34,7 +60,7 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
           </div>
           <span className="text-sm font-bold text-muted-foreground">vs</span>
           <div className="flex-1 text-center">
-            <p className="mb-2 text-sm font-bold">{match.player2}</p>
+            <p className="mb-2 text-sm font-bold">{match.player2?.display_name ?? "Player 2"}</p>
             <input
               value={s2}
               onChange={(e) => setS2(e.target.value)}
@@ -58,8 +84,8 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
             className="mt-2 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Who forfeited?</option>
-            <option value={match.player1}>{match.player1}</option>
-            <option value={match.player2}>{match.player2}</option>
+            {match.player1_id && <option value={match.player1_id}>{match.player1?.display_name}</option>}
+            {match.player2_id && <option value={match.player2_id}>{match.player2?.display_name}</option>}
           </select>
         )}
 
@@ -67,8 +93,12 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
           <button onClick={onClose} className="flex-1 rounded-lg border px-4 py-2.5 text-sm font-semibold text-muted-foreground transition-colors hover:bg-muted">
             Cancel
           </button>
-          <button className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground transition-transform hover:scale-105">
-            Save Result
+          <button
+            onClick={handleSave}
+            disabled={mutation.isPending}
+            className="flex-1 rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground transition-transform hover:scale-105 disabled:opacity-50"
+          >
+            {mutation.isPending ? "Saving..." : "Save Result"}
           </button>
         </div>
       </div>

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { players, Player } from "@/data/mockData";
+import { ProfileRow } from "@/hooks/useData";
 
 interface PowerRankingsProps {
-  onPlayerClick: (player: Player) => void;
+  profiles: ProfileRow[];
+  onPlayerClick: (player: ProfileRow) => void;
 }
 
-const PowerRankings = ({ onPlayerClick }: PowerRankingsProps) => {
-  const sorted = [...players].sort((a, b) => b.elo - a.elo);
+const PowerRankings = ({ profiles, onPlayerClick }: PowerRankingsProps) => {
+  const sorted = [...profiles].sort((a, b) => b.elo - a.elo);
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
 
@@ -24,15 +25,23 @@ const PowerRankings = ({ onPlayerClick }: PowerRankingsProps) => {
 
   const getWinProb = () => {
     if (!p1 || !p2 || p1 === p2) return null;
-    const e1 = players.find((p) => p.id === p1)?.elo ?? 1400;
-    const e2 = players.find((p) => p.id === p2)?.elo ?? 1400;
+    const e1 = profiles.find((p) => p.id === p1)?.elo ?? 1200;
+    const e2 = profiles.find((p) => p.id === p2)?.elo ?? 1200;
     const prob = 1 / (1 + Math.pow(10, (e2 - e1) / 400));
     return Math.round(prob * 100);
   };
 
   const prob = getWinProb();
-  const player1Name = players.find((p) => p.id === p1)?.name;
-  const player2Name = players.find((p) => p.id === p2)?.name;
+  const player1Name = profiles.find((p) => p.id === p1)?.display_name;
+  const player2Name = profiles.find((p) => p.id === p2)?.display_name;
+
+  if (profiles.length === 0) {
+    return (
+      <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">
+        <p className="text-muted-foreground">No players registered yet.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -58,7 +67,7 @@ const PowerRankings = ({ onPlayerClick }: PowerRankingsProps) => {
                     className="cursor-pointer border-b transition-colors last:border-0 hover:bg-accent/5"
                   >
                     <td className="px-4 py-3">{getRankBadge(i + 1)}</td>
-                    <td className="px-4 py-3 font-semibold">{player.name}</td>
+                    <td className="px-4 py-3 font-semibold">{player.display_name}</td>
                     <td className="px-4 py-3 text-right font-extrabold">{player.elo}</td>
                   </tr>
                 ))}
@@ -74,11 +83,11 @@ const PowerRankings = ({ onPlayerClick }: PowerRankingsProps) => {
           <div className="space-y-3">
             <select value={p1} onChange={(e) => setP1(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="">Select Player 1</option>
-              {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
             </select>
             <select value={p2} onChange={(e) => setP2(e.target.value)} className="w-full rounded-lg border bg-card px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring">
               <option value="">Select Player 2</option>
-              {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {profiles.map((p) => <option key={p.id} value={p.id}>{p.display_name}</option>)}
             </select>
           </div>
           {prob !== null && (
