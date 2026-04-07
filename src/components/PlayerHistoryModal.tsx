@@ -1,17 +1,10 @@
 import { X, Trophy } from "lucide-react";
-import { Player } from "@/data/mockData";
+import { ProfileRow } from "@/hooks/useData";
 
 interface PlayerHistoryModalProps {
-  player: Player;
+  player: ProfileRow;
   onClose: () => void;
 }
-
-const placementColor = (p: string) => {
-  if (p.startsWith("1st")) return "bg-yellow-100 text-yellow-800";
-  if (p.startsWith("2nd")) return "bg-gray-100 text-gray-700";
-  if (p.startsWith("3rd")) return "bg-amber-100 text-amber-800";
-  return "bg-muted text-muted-foreground";
-};
 
 const PlayerHistoryModal = ({ player, onClose }: PlayerHistoryModalProps) => {
   return (
@@ -25,19 +18,12 @@ const PlayerHistoryModal = ({ player, onClose }: PlayerHistoryModalProps) => {
             <Trophy size={18} />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold">{player.name}</h2>
+            <h2 className="text-lg font-extrabold">{player.display_name}</h2>
             <p className="text-xs text-muted-foreground">Elo: <span className="font-bold text-foreground">{player.elo}</span></p>
           </div>
         </div>
-        <div className="max-h-60 space-y-2 overflow-y-auto">
-          {player.history.map((h, i) => (
-            <div key={i} className="flex items-center justify-between rounded-xl bg-muted/40 px-4 py-3">
-              <span className="text-sm font-medium">{h.tournament}</span>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${placementColor(h.placement)}`}>
-                {h.placement}
-              </span>
-            </div>
-          ))}
+        <div className="rounded-xl bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+          Tournament history will appear here as tournaments are completed.
         </div>
       </div>
     </div>
