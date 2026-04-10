@@ -7,6 +7,7 @@ export interface ProfileRow {
   user_id: string;
   display_name: string;
   elo: number;
+  visible_in_ranking: boolean;
 }
 
 export interface MatchRow {
@@ -57,7 +58,7 @@ export const useProfiles = () =>
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, user_id, display_name, elo")
+        .select("id, user_id, display_name, elo, visible_in_ranking")
         .order("elo", { ascending: false });
       if (error) throw error;
       return data as ProfileRow[];
@@ -133,6 +134,22 @@ export const useRegisterPlayer = () => {
       const { error } = await supabase
         .from("profiles")
         .update({ display_name: displayName })
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    },
+  });
+};
+
+export const useUpdateRankingVisibility = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, visible }: { userId: string; visible: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ visible_in_ranking: visible })
         .eq("user_id", userId);
       if (error) throw error;
     },
