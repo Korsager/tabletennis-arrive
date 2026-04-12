@@ -13,7 +13,6 @@ const PowerRankingsPage = () => {
 
   // Sort profiles by ELO rating (descending)
   const sortedProfiles = [...profiles]
-    .filter((p) => p.visible_in_ranking !== false)
     .sort((a, b) => (b.elo || 0) - (a.elo || 0));
 
   const activeTournament = tournaments.find((t) => t.active);

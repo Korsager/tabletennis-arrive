@@ -1,5 +1,8 @@
 -- Expand schema for full table tennis tournament system
 
+-- Add description field to tournaments
+ALTER TABLE public.tournaments ADD COLUMN description TEXT;
+
 -- Add visibility setting to profiles
 ALTER TABLE public.profiles ADD COLUMN visible_in_ranking BOOLEAN NOT NULL DEFAULT true;
 

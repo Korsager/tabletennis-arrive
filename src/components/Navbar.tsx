@@ -1,4 +1,4 @@
-import { LogIn, LogOut, Shield, Home } from "lucide-react";
+import { LogIn, LogOut, Shield, Home, TrendingUp } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import arriveLogo from "@/assets/arrive_logo.png";
 import { lovable } from "@/integrations/lovable/index";
@@ -45,6 +45,10 @@ const Navbar = ({ isAdmin, isLoggedIn, tournaments, selectedTournament, onSelect
               <span className="hidden sm:inline">Home</span>
             </Link>
           )}
+          <Link to="/rankings" className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+            <TrendingUp size={16} />
+            <span className="hidden sm:inline">Rankings</span>
+          </Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {tournaments.length > 0 && (
