@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
-import { computeStandings, MatchRow, ProfileRow } from "@/hooks/useData";
+import { computeStandings, MatchRow, ProfileRow, TournamentRulesRow } from "@/hooks/useData";
 import { useAuth } from "@/hooks/useAuth";
 import { useRegisterPlayer } from "@/hooks/useData";
 import { toast } from "sonner";
@@ -8,16 +8,17 @@ import { toast } from "sonner";
 interface LeagueTableProps {
   matches: MatchRow[];
   profiles: ProfileRow[];
+  rules?: TournamentRulesRow;
   isLoggedIn: boolean;
   userId?: string;
 }
 
-const LeagueTable = ({ matches, profiles, isLoggedIn, userId }: LeagueTableProps) => {
+const LeagueTable = ({ matches, profiles, rules, isLoggedIn, userId }: LeagueTableProps) => {
   const { profile } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const registerMutation = useRegisterPlayer();
 
-  const standings = computeStandings(matches, profiles);
+  const standings = computeStandings(matches, profiles, rules);
 
   const handleRegister = () => {
     if (!userId || !displayName.trim()) return;

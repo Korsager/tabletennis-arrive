@@ -20,6 +20,7 @@ export interface MatchRow {
   score2: number | null;
   status: string;
   forfeit_by: string | null;
+  scheduled_at: string | null;
   player1: { id: string; display_name: string } | null;
   player2: { id: string; display_name: string } | null;
 }
@@ -33,9 +34,43 @@ export interface PlayoffMatchRow {
   score1: number | null;
   score2: number | null;
   winner_id: string | null;
+  scheduled_at: string | null;
   player1: { id: string; display_name: string } | null;
   player2: { id: string; display_name: string } | null;
   winner: { id: string; display_name: string } | null;
+}
+
+export interface ChallengeMatchRow {
+  id: string;
+  challenger_id: string;
+  challenged_id: string;
+  scheduled_at: string;
+  status: string;
+  score1: number | null;
+  score2: number | null;
+  winner_id: string | null;
+  challenger: { id: string; display_name: string; elo: number };
+  challenged: { id: string; display_name: string; elo: number };
+  winner: { id: string; display_name: string } | null;
+}
+
+export interface TournamentParticipantRow {
+  id: string;
+  tournament_id: string;
+  profile_id: string;
+  joined_at: string;
+  profile: { id: string; display_name: string; elo: number };
+}
+
+export interface TournamentRulesRow {
+  id: string;
+  tournament_id: string;
+  group_stage_games: number;
+  playoff_games: number;
+  win_points: number;
+  draw_points: number;
+  loss_points: number;
+  forfeit_points: number;
 }
 
 export const useTournaments = () =>
@@ -93,6 +128,78 @@ export const usePlayoffMatches = (tournamentId: string | null) =>
         .order("created_at");
       if (error) throw error;
       return data as unknown as PlayoffMatchRow[];
+    },
+  });
+
+export const useChallengeMatches = () =>
+  useQuery({
+    queryKey: ["challenge_matches"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("challenge_matches")
+        .select("*, challenger:profiles!challenge_matches_challenger_id_fkey(id, display_name, elo), challenged:profiles!challenge_matches_challenged_id_fkey(id, display_name, elo), winner:profiles!challenge_matches_winner_id_fkey(id, display_name)")
+        .order("scheduled_at", { ascending: false });
+      if (error) throw error;
+      return data as unknown as ChallengeMatchRow[];
+    },
+  });
+
+export const useTournamentParticipants = (tournamentId: string | null) =>
+  useQuery({
+    queryKey: ["tournament_participants", tournamentId],
+    enabled: !!tournamentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tournament_participants")
+        .select("*, profile:profiles!tournament_participants_profile_id_fkey(id, display_name, elo)")
+        .eq("tournament_id", tournamentId!)
+        .order("joined_at");
+      if (error) throw error;
+      return data as unknown as TournamentParticipantRow[];
+    },
+  });
+
+export const useTournamentRules = (tournamentId: string | null) =>
+  useQuery({
+    queryKey: ["tournament_rules", tournamentId],
+    enabled: !!tournamentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tournament_rules")
+        .select("*")
+        .eq("tournament_id", tournamentId!)
+        .single();
+      if (error) throw error;
+      return data as TournamentRulesRow;
+    },
+  });
+
+export const useMatchGames = (matchId: string | null) =>
+  useQuery({
+    queryKey: ["match_games", matchId],
+    enabled: !!matchId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("match_games")
+        .select("*")
+        .eq("match_id", matchId!)
+        .order("game_number");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+export const useMatchApprovals = (matchId: string | null) =>
+  useQuery({
+    queryKey: ["match_approvals", matchId],
+    enabled: !!matchId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("match_approvals")
+        .select("*")
+        .eq("match_id", matchId!);
+      if (error) throw error;
+      return data;
     },
   });
 
@@ -159,6 +266,87 @@ export const useUpdateRankingVisibility = () => {
   });
 };
 
+export const useCreateChallenge = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      challengerId,
+      challengedId,
+      scheduledAt,
+    }: {
+      challengerId: string;
+      challengedId: string;
+      scheduledAt: string;
+    }) => {
+      const { error } = await supabase
+        .from("challenge_matches")
+        .insert({
+          challenger_id: challengerId,
+          challenged_id: challengedId,
+          scheduled_at: scheduledAt,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["challenge_matches"] });
+    },
+  });
+};
+
+export const useJoinTournament = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      tournamentId,
+      profileId,
+    }: {
+      tournamentId: string;
+      profileId: string;
+    }) => {
+      const { error } = await supabase
+        .from("tournament_participants")
+        .insert({
+          tournament_id: tournamentId,
+          profile_id: profileId,
+        });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_participants"] });
+    },
+  });
+};
+
+export const useCreateTournament = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      name,
+      startDate,
+      endDate,
+    }: {
+      name: string;
+      startDate: string;
+      endDate: string;
+    }) => {
+      const { data, error } = await supabase
+        .from("tournaments")
+        .insert({
+          name,
+          start_date: startDate,
+          end_date: endDate,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+    },
+  });
+};
+
 // Compute league standings from matches
 export interface Standing {
   profileId: string;
@@ -176,7 +364,8 @@ export interface Standing {
 
 export function computeStandings(
   matches: MatchRow[],
-  profiles: ProfileRow[]
+  profiles: ProfileRow[],
+  rules?: TournamentRulesRow
 ): Standing[] {
   const map = new Map<string, Standing>();
 
@@ -196,6 +385,11 @@ export function computeStandings(
     });
   }
 
+  const winPoints = rules?.win_points ?? 3;
+  const drawPoints = rules?.draw_points ?? 1;
+  const lossPoints = rules?.loss_points ?? 0;
+  const forfeitPoints = rules?.forfeit_points ?? -1;
+
   for (const m of matches) {
     if (m.status !== "Completed" || !m.player1_id || !m.player2_id) continue;
     const s1 = map.get(m.player1_id);
@@ -212,28 +406,30 @@ export function computeStandings(
     if (m.forfeit_by) {
       if (m.forfeit_by === m.player1_id) {
         s1.forfeits++;
-        s1.points -= 1;
+        s1.points += forfeitPoints;
         s2.wins++;
-        s2.points += 3;
+        s2.points += winPoints;
       } else {
         s2.forfeits++;
-        s2.points -= 1;
+        s2.points += forfeitPoints;
         s1.wins++;
-        s1.points += 3;
+        s1.points += winPoints;
       }
     } else if ((m.score1 ?? 0) > (m.score2 ?? 0)) {
       s1.wins++;
-      s1.points += 3;
+      s1.points += winPoints;
       s2.losses++;
+      s2.points += lossPoints;
     } else if ((m.score1 ?? 0) < (m.score2 ?? 0)) {
       s2.wins++;
-      s2.points += 3;
+      s2.points += winPoints;
       s1.losses++;
+      s1.points += lossPoints;
     } else {
       s1.draws++;
       s2.draws++;
-      s1.points += 1;
-      s2.points += 1;
+      s1.points += drawPoints;
+      s2.points += drawPoints;
     }
   }
 

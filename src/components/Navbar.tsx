@@ -1,4 +1,5 @@
-import { LogIn, LogOut, Shield } from "lucide-react";
+import { LogIn, LogOut, Shield, Home } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
 import arriveLogo from "@/assets/arrive_logo.png";
 import { lovable } from "@/integrations/lovable/index";
 
@@ -18,6 +19,9 @@ interface NavbarProps {
 }
 
 const Navbar = ({ isAdmin, isLoggedIn, tournaments, selectedTournament, onSelectTournament, onSignOut, userName }: NavbarProps) => {
+  const location = useLocation();
+  const isHomePage = location.pathname === "/";
+
   const handleSignIn = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
@@ -31,8 +35,16 @@ const Navbar = ({ isAdmin, isLoggedIn, tournaments, selectedTournament, onSelect
     <nav className="sticky top-0 z-50 border-b bg-card/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
-          <img src={arriveLogo} alt="Arrive" className="h-8 w-auto" />
-          <span className="text-lg font-extrabold text-primary">Table Tennis</span>
+          <Link to="/" className="flex items-center gap-3">
+            <img src={arriveLogo} alt="Arrive" className="h-8 w-auto" />
+            <span className="text-lg font-extrabold text-primary">Table Tennis</span>
+          </Link>
+          {!isHomePage && (
+            <Link to="/" className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted">
+              <Home size={16} />
+              <span className="hidden sm:inline">Home</span>
+            </Link>
+          )}
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
           {tournaments.length > 0 && (
