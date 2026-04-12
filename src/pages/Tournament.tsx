@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import TabMenu, { TabId } from "@/components/TabMenu";
 import LeagueTable from "@/components/LeagueTable";
@@ -12,14 +13,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches } from "@/hooks/useData";
 
 const Tournament = () => {
+  const { id: tournamentIdParam } = useParams<{ id?: string }>();
   const [activeTab, setActiveTab] = useState<TabId>("league");
   const { user, profile, isAdmin, loading: authLoading, signOut } = useAuth();
   const { data: tournaments = [] } = useTournaments();
   const [selectedTournamentId, setSelectedTournamentId] = useState<string | null>(null);
 
-  // Auto-select active tournament
+  // Auto-select tournament: use URL param if provided, then selected, then active, then first one
   const activeTournament = tournaments.find((t) => t.active);
-  const currentTournamentId = selectedTournamentId || activeTournament?.id || tournaments[0]?.id || null;
+  const currentTournamentId = tournamentIdParam || selectedTournamentId || activeTournament?.id || tournaments[0]?.id || null;
 
   const { data: matches = [] } = useMatches(currentTournamentId);
   const { data: profiles = [] } = useProfiles();
