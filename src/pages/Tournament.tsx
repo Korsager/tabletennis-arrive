@@ -10,7 +10,7 @@ import RulesAdmin from "@/components/RulesAdmin";
 import ReportScoreModal from "@/components/ReportScoreModal";
 import PlayerHistoryModal from "@/components/PlayerHistoryModal";
 import { useAuth } from "@/hooks/useAuth";
-import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches } from "@/hooks/useData";
+import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants } from "@/hooks/useData";
 
 const Tournament = () => {
   const { id: tournamentIdParam } = useParams<{ id?: string }>();
@@ -28,6 +28,7 @@ const Tournament = () => {
   const { data: playoffMatches = [] } = usePlayoffMatches(currentTournamentId);
   const { data: rules } = useTournamentRules(currentTournamentId);
   const { data: challengeMatches = [] } = useChallengeMatches();
+  const { data: tournamentParticipants = [] } = useTournamentParticipants(currentTournamentId);
 
   const [reportMatch, setReportMatch] = useState<MatchRow | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<ProfileRow | null>(null);
@@ -37,9 +38,6 @@ const Tournament = () => {
       <Navbar
         isAdmin={isAdmin}
         isLoggedIn={!!user}
-        tournaments={tournaments}
-        selectedTournament={currentTournamentId ?? ""}
-        onSelectTournament={setSelectedTournamentId}
         onSignOut={signOut}
         userName={profile?.display_name}
       />
@@ -62,7 +60,7 @@ const Tournament = () => {
           <PlayoffsView playoffMatches={playoffMatches} />
         )}
         {activeTab === "rankings" && (
-          <PowerRankings profiles={profiles} onPlayerClick={setSelectedPlayer} />
+          <PowerRankings profiles={tournamentParticipants.map(tp => tp.profile).filter(Boolean)} onPlayerClick={setSelectedPlayer} />
         )}
         {activeTab === "rules" && (
           <RulesAdmin

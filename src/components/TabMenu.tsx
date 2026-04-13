@@ -1,10 +1,10 @@
-import { Trophy, Swords, GitBranch, TrendingUp, BookOpen } from "lucide-react";
+import { Trophy, Swords, GitBranch, Hash, BookOpen } from "lucide-react";
 
 const tabs = [
   { id: "league", label: "League Table", icon: Trophy },
   { id: "matches", label: "Matches", icon: Swords },
   { id: "playoffs", label: "Playoffs", icon: GitBranch },
-  { id: "rankings", label: "Power Rankings", icon: TrendingUp },
+  { id: "rankings", label: "Seeding", icon: Hash },
   { id: "rules", label: "Rules & Admin", icon: BookOpen },
 ] as const;
 

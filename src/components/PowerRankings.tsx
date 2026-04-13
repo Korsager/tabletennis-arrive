@@ -1,8 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
-import { ProfileRow, useUpdateRankingVisibility } from "@/hooks/useData";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { ProfileRow } from "@/hooks/useData";
 
 interface PowerRankingsProps {
   profiles: ProfileRow[];
@@ -10,48 +7,22 @@ interface PowerRankingsProps {
 }
 
 const PowerRankings = ({ profiles, onPlayerClick }: PowerRankingsProps) => {
-  const { user, profile: authProfile } = useAuth();
-
-  // Find the current user's profile from the profiles list (has visible_in_ranking)
-  const currentUserProfile = profiles.find((p) => p.user_id === user?.id);
-  const isVisible = currentUserProfile?.visible_in_ranking ?? true;
-
-  const updateVisibility = useUpdateRankingVisibility();
-
-  // Only show players who are visible in ranking
-  const visibleProfiles = profiles.filter((p) => p.visible_in_ranking);
-  const sorted = [...visibleProfiles].sort((a, b) => b.elo - a.elo);
+  // Sort all registered players by ELO (highest first = seed 1)
+  const sorted = [...profiles].sort((a, b) => (b.elo || 0) - (a.elo || 0));
 
   const [p1, setP1] = useState("");
   const [p2, setP2] = useState("");
 
-  const handleToggleVisibility = () => {
-    if (!user) return;
-    const newVisible = !isVisible;
-    updateVisibility.mutate(
-      { userId: user.id, visible: newVisible },
-      {
-        onSuccess: () =>
-          toast.success(
-            newVisible
-              ? "You are now visible in the Power Rankings."
-              : "You are now hidden from the Power Rankings."
-          ),
-        onError: () => toast.error("Failed to update ranking visibility."),
-      }
-    );
-  };
-
-  const getRankBadge = (rank: number) => {
+  const getSeedBadge = (seed: number) => {
     const colors = ["bg-yellow-400 text-yellow-900", "bg-gray-300 text-gray-800", "bg-amber-600 text-amber-100"];
-    if (rank <= 3) {
+    if (seed <= 3) {
       return (
-        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${colors[rank - 1]}`}>
-          {rank}
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${colors[seed - 1]}`}>
+          {seed}
         </span>
       );
     }
-    return <span className="flex h-7 w-7 items-center justify-center text-sm font-bold text-muted-foreground">{rank}</span>;
+    return <span className="flex h-7 w-7 items-center justify-center text-sm font-bold text-muted-foreground">{seed}</span>;
   };
 
   const getWinProb = () => {
@@ -69,69 +40,31 @@ const PowerRankings = ({ profiles, onPlayerClick }: PowerRankingsProps) => {
   if (profiles.length === 0) {
     return (
       <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">
-        <p className="text-muted-foreground">No players registered yet.</p>
+        <p className="text-muted-foreground">No players registered for this tournament yet.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Visibility toggle for logged-in users */}
-      {user && currentUserProfile && (
-        <div className="flex items-center justify-between rounded-2xl border bg-card px-5 py-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            {isVisible ? (
-              <Eye size={20} className="text-accent" />
-            ) : (
-              <EyeOff size={20} className="text-muted-foreground" />
-            )}
-            <div>
-              <p className="text-sm font-semibold">
-                {isVisible ? "Visible in Power Rankings" : "Hidden from Power Rankings"}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {isVisible
-                  ? "Your Elo rank is publicly displayed. Toggle to hide yourself."
-                  : "You won't appear in the rankings. Your Elo is still tracked."}
-              </p>
-            </div>
-          </div>
-          {/* Toggle switch */}
-          <button
-            onClick={handleToggleVisibility}
-            disabled={updateVisibility.isPending}
-            aria-label={isVisible ? "Hide from rankings" : "Show in rankings"}
-            className={`relative inline-flex h-7 w-14 flex-shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:opacity-50 ${
-              isVisible ? "bg-accent" : "bg-muted"
-            }`}
-          >
-            <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 ${
-                isVisible ? "translate-x-7" : "translate-x-0.5"
-              }`}
-            />
-          </button>
-        </div>
-      )}
-
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div className="border-b bg-muted/30 px-4 py-3">
               <h2 className="text-sm font-extrabold uppercase tracking-wider text-muted-foreground">
-                All-Time Power Rankings
+                Tournament Seeding
               </h2>
             </div>
             {sorted.length === 0 ? (
               <div className="p-8 text-center text-sm text-muted-foreground">
-                No players are currently visible in the rankings.
+                No registered players to display.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
-                      <th className="px-4 py-3 text-left font-bold text-muted-foreground">Rank</th>
+                      <th className="px-4 py-3 text-left font-bold text-muted-foreground">Seed</th>
                       <th className="px-4 py-3 text-left font-bold text-muted-foreground">Player</th>
                       <th className="px-4 py-3 text-right font-bold text-muted-foreground">Elo</th>
                     </tr>
@@ -143,9 +76,9 @@ const PowerRankings = ({ profiles, onPlayerClick }: PowerRankingsProps) => {
                         onClick={() => onPlayerClick(player)}
                         className="cursor-pointer border-b transition-colors last:border-0 hover:bg-accent/5"
                       >
-                        <td className="px-4 py-3">{getRankBadge(i + 1)}</td>
+                        <td className="px-4 py-3">{getSeedBadge(i + 1)}</td>
                         <td className="px-4 py-3 font-semibold">{player.display_name}</td>
-                        <td className="px-4 py-3 text-right font-extrabold">{player.elo}</td>
+                        <td className="px-4 py-3 text-right font-extrabold">{player.elo || 1200}</td>
                       </tr>
                     ))}
                   </tbody>

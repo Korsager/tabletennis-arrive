@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowUpRight, Home } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
-import { useTournaments, useProfiles } from "@/hooks/useData";
+import { useProfiles } from "@/hooks/useData";
 
 const PowerRankingsPage = () => {
   const { user, signOut, profile } = useAuth();
-  const { data: tournaments = [] } = useTournaments();
   const { data: profiles = [] } = useProfiles();
   const [visibleCount, setVisibleCount] = useState(50);
 
@@ -15,16 +13,11 @@ const PowerRankingsPage = () => {
   const sortedProfiles = [...profiles]
     .sort((a, b) => (b.elo || 0) - (a.elo || 0));
 
-  const activeTournament = tournaments.find((t) => t.active);
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar
         isAdmin={profile?.id ? false : false}
         isLoggedIn={!!user}
-        tournaments={tournaments}
-        selectedTournament={activeTournament?.id ?? ""}
-        onSelectTournament={() => {}}
         onSignOut={signOut}
         userName={profile?.display_name}
       />
@@ -32,15 +25,6 @@ const PowerRankingsPage = () => {
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Link
-                to="/"
-                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-              >
-                <Home size={16} />
-                <span className="hidden sm:inline">Home</span>
-              </Link>
-            </div>
             <h1 className="text-3xl font-bold">Power Rankings</h1>
             <p className="text-muted-foreground mt-2">
               Current player rankings based on ELO rating

@@ -11,14 +11,14 @@ interface Tournament {
 interface NavbarProps {
   isAdmin: boolean;
   isLoggedIn: boolean;
-  tournaments: Tournament[];
-  selectedTournament: string;
-  onSelectTournament: (id: string) => void;
+  tournaments?: Tournament[];
+  selectedTournament?: string;
+  onSelectTournament?: (id: string) => void;
   onSignOut: () => void;
   userName?: string;
 }
 
-const Navbar = ({ isAdmin, isLoggedIn, tournaments, selectedTournament, onSelectTournament, onSignOut, userName }: NavbarProps) => {
+const Navbar = ({ isAdmin, isLoggedIn, tournaments = [], selectedTournament = "", onSelectTournament, onSignOut, userName }: NavbarProps) => {
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 
@@ -51,7 +51,7 @@ const Navbar = ({ isAdmin, isLoggedIn, tournaments, selectedTournament, onSelect
           </Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
-          {tournaments.length > 0 && (
+          {tournaments.length > 0 && onSelectTournament && (
             <select
               value={selectedTournament}
               onChange={(e) => onSelectTournament(e.target.value)}

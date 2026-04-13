@@ -94,7 +94,7 @@ export const useTournaments = () =>
               start_date: "2025-03-01",
               end_date: "2025-06-30",
               active: true,
-              signup_deadline: "2025-02-28",
+              signup_deadline: "2026-05-01",
               created_at: "2025-01-01T00:00:00Z",
               updated_at: "2025-01-01T00:00:00Z",
             },
