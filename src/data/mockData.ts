@@ -40,10 +40,11 @@ export interface Tournament {
   startDate: string;
   endDate: string;
   active: boolean;
+  signup_deadline?: string;
 }
 
 export const tournaments: Tournament[] = [
-  { id: "t1", name: "Spring 2025 League", startDate: "2025-03-01", endDate: "2025-06-30", active: true },
+  { id: "t1", name: "Spring 2025 League", startDate: "2025-03-01", endDate: "2025-06-30", active: true, signup_deadline: "2026-05-01" },
   { id: "t2", name: "Winter 2024 League", startDate: "2024-10-01", endDate: "2024-12-31", active: false },
 ];
 

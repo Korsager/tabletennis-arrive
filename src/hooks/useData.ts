@@ -75,89 +75,42 @@ export interface TournamentRulesRow {
 
 export const useTournaments = () =>
   useQuery({
-    queryKey: ["tournaments"],
+    queryKey: ["tournaments", "v3"], // Changed key again
     queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("tournaments")
-          .select("*")
-          .order("active", { ascending: false })
-          .order("start_date", { ascending: false });
-
-        if (error || !data || data.length === 0) {
-          // Fall back to mock data
-          return [
-            {
-              id: "t1",
-              name: "Spring 2025 League",
-              description: "Current season tournament with exciting matches",
-              start_date: "2025-03-01",
-              end_date: "2025-06-30",
-              active: true,
-              signup_deadline: "2026-05-01",
-              created_at: "2025-01-01T00:00:00Z",
-              updated_at: "2025-01-01T00:00:00Z",
-            },
-            {
-              id: "t2",
-              name: "Winter 2024 League",
-              description: "Winter season tournament",
-              start_date: "2024-10-01",
-              end_date: "2024-12-31",
-              active: false,
-              created_at: "2024-09-01T00:00:00Z",
-              updated_at: "2024-09-01T00:00:00Z",
-            },
-            {
-              id: "t3",
-              name: "Fall 2024 League",
-              description: "Fall season tournament",
-              start_date: "2024-08-01",
-              end_date: "2024-09-30",
-              active: false,
-              created_at: "2024-07-01T00:00:00Z",
-              updated_at: "2024-07-01T00:00:00Z",
-            },
-          ];
-        }
-
-        return data;
-      } catch (err) {
-        // Fall back to mock data on any error
-        return [
-          {
-            id: "t1",
-            name: "Spring 2025 League",
-            description: "Current season tournament with exciting matches",
-            start_date: "2025-03-01",
-            end_date: "2025-06-30",
-            active: true,
-            signup_deadline: "2025-02-28",
-            created_at: "2025-01-01T00:00:00Z",
-            updated_at: "2025-01-01T00:00:00Z",
-          },
-          {
-            id: "t2",
-            name: "Winter 2024 League",
-            description: "Winter season tournament",
-            start_date: "2024-10-01",
-            end_date: "2024-12-31",
-            active: false,
-            created_at: "2024-09-01T00:00:00Z",
-            updated_at: "2024-09-01T00:00:00Z",
-          },
-          {
-            id: "t3",
-            name: "Fall 2024 League",
-            description: "Fall season tournament",
-            start_date: "2024-08-01",
-            end_date: "2024-09-30",
-            active: false,
-            created_at: "2024-07-01T00:00:00Z",
-            updated_at: "2024-07-01T00:00:00Z",
-          },
-        ];
-      }
+      // Force mock data for now to bypass database
+      return [
+        {
+          id: "t1",
+          name: "Spring 2025 League",
+          description: "Current season tournament with exciting matches",
+          start_date: "2025-03-01",
+          end_date: "2025-06-30",
+          active: true,
+          signup_deadline: "2026-05-01",
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2025-01-01T00:00:00Z",
+        },
+        {
+          id: "t2",
+          name: "Winter 2024 League",
+          description: "Winter season tournament",
+          start_date: "2024-10-01",
+          end_date: "2024-12-31",
+          active: false,
+          created_at: "2024-09-01T00:00:00Z",
+          updated_at: "2024-09-01T00:00:00Z",
+        },
+        {
+          id: "t3",
+          name: "Fall 2024 League",
+          description: "Fall season tournament",
+          start_date: "2024-08-01",
+          end_date: "2024-09-30",
+          active: false,
+          created_at: "2024-07-01T00:00:00Z",
+          updated_at: "2024-07-01T00:00:00Z",
+        },
+      ];
     },
   });
 

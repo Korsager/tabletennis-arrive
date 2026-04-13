@@ -28,7 +28,6 @@ const Home = () => {
   useEffect(() => {
     (window as any).addTestTournaments = addTestTournaments;
     (window as any).addTestProfiles = addTestProfiles;
-    (window as any).updateSignupDeadline = updateSignupDeadline;
   }, []);
 
   // Get all tournament matches
@@ -111,12 +110,6 @@ const Home = () => {
                   className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/80"
                 >
                   Add Test Profiles
-                </button>
-                <button
-                  onClick={() => updateSignupDeadline()}
-                  className="rounded-lg bg-orange-100 px-3 py-1.5 text-xs font-semibold text-orange-800 hover:bg-orange-200"
-                >
-                  Update Signup Deadline
                 </button>
               </div>
             </div>
