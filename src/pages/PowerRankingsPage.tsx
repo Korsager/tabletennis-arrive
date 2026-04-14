@@ -1,17 +1,27 @@
 import { useState } from "react";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Eye, EyeOff } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfiles } from "@/hooks/useData";
+import { useProfiles, useUpdateProfileVisibility } from "@/hooks/useData";
 
 const PowerRankingsPage = () => {
   const { user, signOut, profile } = useAuth();
   const { data: profiles = [] } = useProfiles();
+  const { mutate: updateVisibility, isPending: isUpdatingVisibility } = useUpdateProfileVisibility();
   const [visibleCount, setVisibleCount] = useState(50);
 
-  // Sort profiles by ELO rating (descending)
+  // Sort profiles by ELO rating (descending) and filter by visibility
   const sortedProfiles = [...profiles]
+    .filter(p => p.visible_in_ranking !== false) // Show all by default, hide only if explicitly set to false
     .sort((a, b) => (b.elo || 0) - (a.elo || 0));
+
+  const handleVisibilityToggle = () => {
+    if (!profile) return;
+    updateVisibility({
+      profileId: profile.id,
+      visible: !profile.visible_in_ranking,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -30,6 +40,26 @@ const PowerRankingsPage = () => {
               Current player rankings based on ELO rating
             </p>
           </div>
+          {user && profile && (
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {profile.visible_in_ranking ? "Visible in rankings" : "Hidden from rankings"}
+              </div>
+              <button
+                onClick={handleVisibilityToggle}
+                disabled={isUpdatingVisibility}
+                className="flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold hover:bg-muted/50 disabled:opacity-50"
+                title={profile.visible_in_ranking ? "Hide from rankings" : "Show in rankings"}
+              >
+                {profile.visible_in_ranking ? (
+                  <Eye size={16} className="text-green-600" />
+                ) : (
+                  <EyeOff size={16} className="text-red-600" />
+                )}
+                {profile.visible_in_ranking ? "Hide" : "Show"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Rankings Table */}

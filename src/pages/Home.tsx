@@ -54,21 +54,6 @@ const Home = () => {
     .sort((a, b) => (b.elo || 0) - (a.elo || 0))
     .slice(0, 5);
 
-  const handleRegisterTournament = () => {
-    if (!activeTournament || !profile) return;
-
-    // Check if signup is still available
-    if (!activeTournament.signup_deadline || new Date() >= new Date(activeTournament.signup_deadline)) {
-      toast.error("Registration for this tournament has closed");
-      return;
-    }
-
-    registerForTournament({
-      tournament_id: activeTournament.id,
-      profile_id: profile.id,
-    });
-  };
-
   const handleRegisterTournamentForUpcoming = (tournament: any) => {
     if (!profile) return;
 
@@ -242,15 +227,6 @@ const Home = () => {
                     <Link to="/tournament" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                       View Tournament
                     </Link>
-                    {user && !isRegisteredForActive && activeTournament.signup_deadline && new Date() < new Date(activeTournament.signup_deadline) && (
-                      <button
-                        onClick={handleRegisterTournament}
-                        disabled={isRegistering}
-                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-green-700 disabled:opacity-50"
-                      >
-                        {isRegistering ? "Registering..." : "Sign Up"}
-                      </button>
-                    )}
                     {isRegisteredForActive && (
                       <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
                         ✓ Registered

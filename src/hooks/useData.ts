@@ -109,7 +109,7 @@ export const useProfiles = () =>
             user_id: player.id, // Mock user_id
             display_name: player.name,
             elo: player.elo,
-            visible_in_ranking: true,
+            visible_in_ranking: player.visible_in_ranking ?? true,
           })) as ProfileRow[];
         }
 
@@ -121,7 +121,7 @@ export const useProfiles = () =>
           user_id: player.id, // Mock user_id
           display_name: player.name,
           elo: player.elo,
-          visible_in_ranking: true,
+          visible_in_ranking: player.visible_in_ranking ?? true,
         })) as ProfileRow[];
       }
     },
@@ -516,6 +516,22 @@ export const useApproveMatchResult = () => {
       queryClient.invalidateQueries({ queryKey: ["tournament_match_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["match_approvals"] });
       queryClient.invalidateQueries({ queryKey: ["matches"] });
+    },
+  });
+};
+
+export const useUpdateProfileVisibility = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ profileId, visible }: { profileId: string; visible: boolean }) => {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ visible_in_ranking: visible })
+        .eq("id", profileId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["profiles"] });
     },
   });
 };

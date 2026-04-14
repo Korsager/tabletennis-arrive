@@ -11,6 +11,7 @@ export interface Player {
   points: number;
   elo: number;
   history: { tournament: string; placement: string }[];
+  visible_in_ranking?: boolean;
 }
 
 export interface Match {
@@ -131,16 +132,16 @@ Tiebreakers
 
 // Players for Spring 2026 League (active tournament)
 export const spring2026Players: Player[] = [
-  { id: "p1", name: "Alex Chen", played: 8, wins: 7, draws: 1, losses: 0, forfeits: 0, gamesWon: 24, gamesLost: 6, points: 22, elo: 1580, history: [{ tournament: "Winter 2025 League", placement: "1st Place" }] },
-  { id: "p2", name: "Sarah Kim", played: 8, wins: 6, draws: 1, losses: 1, forfeits: 0, gamesWon: 21, gamesLost: 9, points: 19, elo: 1520, history: [{ tournament: "Winter 2025 League", placement: "2nd Place" }] },
-  { id: "p3", name: "Marcus Johnson", played: 8, wins: 5, draws: 2, losses: 1, forfeits: 0, gamesWon: 19, gamesLost: 11, points: 17, elo: 1480, history: [{ tournament: "Winter 2025 League", placement: "3rd Place" }] },
-  { id: "p4", name: "Emily Wang", played: 8, wins: 5, draws: 1, losses: 2, forfeits: 0, gamesWon: 18, gamesLost: 12, points: 16, elo: 1450, history: [] },
-  { id: "p5", name: "Jake Rivera", played: 8, wins: 4, draws: 1, losses: 3, forfeits: 0, gamesWon: 16, gamesLost: 14, points: 13, elo: 1420, history: [] },
-  { id: "p6", name: "Priya Patel", played: 8, wins: 4, draws: 0, losses: 4, forfeits: 0, gamesWon: 15, gamesLost: 15, points: 12, elo: 1390, history: [] },
-  { id: "p7", name: "Tom Bradley", played: 8, wins: 3, draws: 1, losses: 4, forfeits: 0, gamesWon: 13, gamesLost: 17, points: 10, elo: 1360, history: [] },
-  { id: "p8", name: "Nina Oswald", played: 8, wins: 2, draws: 2, losses: 4, forfeits: 0, gamesWon: 12, gamesLost: 18, points: 8, elo: 1330, history: [] },
-  { id: "p9", name: "David Liu", played: 8, wins: 2, draws: 0, losses: 6, forfeits: 0, gamesWon: 10, gamesLost: 20, points: 6, elo: 1300, history: [] },
-  { id: "p10", name: "Lisa Chen", played: 8, wins: 1, draws: 1, losses: 6, forfeits: 0, gamesWon: 8, gamesLost: 22, points: 4, elo: 1270, history: [] },
+  { id: "p1", name: "Alex Chen", played: 8, wins: 7, draws: 1, losses: 0, forfeits: 0, gamesWon: 24, gamesLost: 6, points: 22, elo: 1580, history: [{ tournament: "Winter 2025 League", placement: "1st Place" }], visible_in_ranking: true },
+  { id: "p2", name: "Sarah Kim", played: 8, wins: 6, draws: 1, losses: 1, forfeits: 0, gamesWon: 21, gamesLost: 9, points: 19, elo: 1520, history: [{ tournament: "Winter 2025 League", placement: "2nd Place" }], visible_in_ranking: true },
+  { id: "p3", name: "Marcus Johnson", played: 8, wins: 5, draws: 2, losses: 1, forfeits: 0, gamesWon: 19, gamesLost: 11, points: 17, elo: 1480, history: [{ tournament: "Winter 2025 League", placement: "3rd Place" }], visible_in_ranking: true },
+  { id: "p4", name: "Emily Wang", played: 8, wins: 5, draws: 1, losses: 2, forfeits: 0, gamesWon: 18, gamesLost: 12, points: 16, elo: 1450, history: [], visible_in_ranking: true },
+  { id: "p5", name: "Jake Rivera", played: 8, wins: 4, draws: 1, losses: 3, forfeits: 0, gamesWon: 16, gamesLost: 14, points: 13, elo: 1420, history: [], visible_in_ranking: false },
+  { id: "p6", name: "Priya Patel", played: 8, wins: 4, draws: 0, losses: 4, forfeits: 0, gamesWon: 15, gamesLost: 15, points: 12, elo: 1390, history: [], visible_in_ranking: true },
+  { id: "p7", name: "Tom Bradley", played: 8, wins: 3, draws: 1, losses: 4, forfeits: 0, gamesWon: 13, gamesLost: 17, points: 10, elo: 1360, history: [], visible_in_ranking: true },
+  { id: "p8", name: "Nina Oswald", played: 8, wins: 2, draws: 2, losses: 4, forfeits: 0, gamesWon: 12, gamesLost: 18, points: 8, elo: 1330, history: [], visible_in_ranking: true },
+  { id: "p9", name: "David Liu", played: 8, wins: 2, draws: 0, losses: 6, forfeits: 0, gamesWon: 10, gamesLost: 20, points: 6, elo: 1300, history: [], visible_in_ranking: false },
+  { id: "p10", name: "Lisa Chen", played: 8, wins: 1, draws: 1, losses: 6, forfeits: 0, gamesWon: 8, gamesLost: 22, points: 4, elo: 1270, history: [], visible_in_ranking: true },
 ];
 
 // Players for Summer 2026 Championship (upcoming)

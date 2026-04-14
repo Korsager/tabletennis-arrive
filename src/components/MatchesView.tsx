@@ -1,13 +1,14 @@
-import { MatchRow, ChallengeMatchRow } from "@/hooks/useData";
+import { MatchRow, ChallengeMatchRow, ProfileRow } from "@/hooks/useData";
 
 interface MatchesViewProps {
   matches: MatchRow[];
   challengeMatches?: ChallengeMatchRow[];
   onReportScore: (match: MatchRow) => void;
   isAdmin?: boolean;
+  currentUser?: ProfileRow | null;
 }
 
-const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = false }: MatchesViewProps) => {
+const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = false, currentUser }: MatchesViewProps) => {
   const allMatches = [
     ...matches.map(m => ({ ...m, type: 'tournament' as const })),
     ...challengeMatches.map(m => ({ ...m, type: 'challenge' as const })),
@@ -81,7 +82,7 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = 
               </div>
             )}
           </div>
-          {match.type === 'tournament' && (isAdmin || match.status === "Pending") && (
+          {match.type === 'tournament' && (isAdmin || (currentUser && (match.player1_id === currentUser.id || match.player2_id === currentUser.id))) && (
             <button
               onClick={() => onReportScore(match)}
               className="border-t bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"

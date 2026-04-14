@@ -63,7 +63,7 @@ const Tournament = () => {
           />
         )}
         {activeTab === "matches" && (
-          <MatchesView matches={matches} challengeMatches={challengeMatches} onReportScore={setReportMatch} isAdmin={isAdmin} />
+          <MatchesView matches={matches} challengeMatches={challengeMatches} onReportScore={setReportMatch} isAdmin={isAdmin} currentUser={profile} />
         )}
         {activeTab === "playoffs" && (
           <PlayoffsView playoffMatches={playoffMatches} />
@@ -109,7 +109,8 @@ const Tournament = () => {
                                 </button>
                                 <button
                                   onClick={() => approval.match && setReportMatch(approval.match)}
-                                  className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+                                  disabled={!isAdmin && profile && approval.match && (approval.match.player1_id !== profile.id && approval.match.player2_id !== profile.id)}
+                                  className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   Set Score
                                 </button>
@@ -142,7 +143,8 @@ const Tournament = () => {
                                   </button>
                                   <button
                                     onClick={() => setReportMatch(match)}
-                                    className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted"
+                                    disabled={!isAdmin && profile && (match.player1_id !== profile.id && match.player2_id !== profile.id)}
+                                    className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-foreground hover:bg-muted disabled:opacity-50 disabled:cursor-not-allowed"
                                   >
                                     Edit Result
                                   </button>
