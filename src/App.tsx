@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index.tsx";
 import Tournament from "./pages/Tournament.tsx";
+import CreateTournament from "./pages/CreateTournament.tsx";
 import PowerRankingsPage from "./pages/PowerRankingsPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/tournament" element={<Tournament />} />
             <Route path="/tournament/:id" element={<Tournament />} />
+            <Route path="/create-tournament" element={<CreateTournament />} />
             <Route path="/rankings" element={<PowerRankingsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

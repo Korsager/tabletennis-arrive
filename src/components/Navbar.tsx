@@ -64,7 +64,7 @@ const Navbar = ({ isAdmin, isLoggedIn, tournaments = [], selectedTournament = ""
           )}
           {isAdmin && (
             <Link
-              to="/tournament"
+              to="/create-tournament"
               className="flex items-center gap-1.5 rounded-lg border border-border bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
             >
               <PlusCircle size={16} />
