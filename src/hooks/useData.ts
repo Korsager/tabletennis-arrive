@@ -388,10 +388,12 @@ export const useCreateTournament = () => {
       name,
       startDate,
       endDate,
+      description,
     }: {
       name: string;
       startDate: string;
       endDate: string;
+      description?: string;
     }) => {
       const { data, error } = await supabase
         .from("tournaments")
@@ -400,6 +402,7 @@ export const useCreateTournament = () => {
           start_date: startDate,
           end_date: endDate,
           signup_deadline: startDate, // Sign-up available until tournament starts
+          description,
         })
         .select()
         .single();
@@ -408,6 +411,70 @@ export const useCreateTournament = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+    },
+  });
+};
+
+export interface MatchApprovalRow {
+  id: string;
+  match_id: string;
+  profile_id: string;
+  approved: boolean;
+  approved_at: string;
+  profile?: { id: string; display_name: string };
+  match?: MatchRow;
+}
+
+export const useTournamentMatchApprovals = (tournamentId: string | null) =>
+  useQuery({
+    queryKey: ["tournament_match_approvals", tournamentId],
+    enabled: !!tournamentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("match_approvals")
+        .select(
+          "*, profile:profiles!match_approvals_profile_id_fkey(id, display_name), match:matches!match_approvals_match_id_fkey(id, round, status, score1, score2, player1_id, player2_id, player1:profiles!matches_player1_id_fkey(id, display_name), player2:profiles!matches_player2_id_fkey(id, display_name), tournament_id)"
+        )
+        .eq("match.tournament_id", tournamentId!);
+      if (error) throw error;
+      return data as unknown as MatchApprovalRow[];
+    },
+  });
+
+export const useApproveMatchResult = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      approvalId,
+      matchId,
+      profileId,
+    }: {
+      approvalId?: string;
+      matchId: string;
+      profileId: string;
+    }) => {
+      if (approvalId) {
+        const { error } = await supabase
+          .from("match_approvals")
+          .update({ approved: true, approved_at: new Date().toISOString() })
+          .eq("id", approvalId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("match_approvals")
+          .insert({
+            match_id: matchId,
+            profile_id: profileId,
+            approved: true,
+            approved_at: new Date().toISOString(),
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_match_approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["match_approvals"] });
+      queryClient.invalidateQueries({ queryKey: ["matches"] });
     },
   });
 };

@@ -1,4 +1,4 @@
-import { LogIn, LogOut, Shield, Home, TrendingUp } from "lucide-react";
+import { LogIn, LogOut, Shield, Home, TrendingUp, PlusCircle } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import arriveLogo from "@/assets/arrive_logo.png";
 import { lovable } from "@/integrations/lovable/index";
@@ -61,6 +61,15 @@ const Navbar = ({ isAdmin, isLoggedIn, tournaments = [], selectedTournament = ""
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
+          )}
+          {isAdmin && (
+            <Link
+              to="/tournament"
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-primary/5 px-3 py-1.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/10"
+            >
+              <PlusCircle size={16} />
+              <span className="hidden sm:inline">Create a tournament</span>
+            </Link>
           )}
           {isAdmin && (
             <span className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground">

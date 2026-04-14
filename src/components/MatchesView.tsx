@@ -4,9 +4,10 @@ interface MatchesViewProps {
   matches: MatchRow[];
   challengeMatches?: ChallengeMatchRow[];
   onReportScore: (match: MatchRow) => void;
+  isAdmin?: boolean;
 }
 
-const MatchesView = ({ matches, challengeMatches = [], onReportScore }: MatchesViewProps) => {
+const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = false }: MatchesViewProps) => {
   const allMatches = [
     ...matches.map(m => ({ ...m, type: 'tournament' as const })),
     ...challengeMatches.map(m => ({ ...m, type: 'challenge' as const })),
@@ -80,12 +81,12 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore }: MatchesV
               </div>
             )}
           </div>
-          {match.type === 'tournament' && match.status === "Pending" && (
+          {match.type === 'tournament' && (isAdmin || match.status === "Pending") && (
             <button
               onClick={() => onReportScore(match)}
               className="border-t bg-primary py-2.5 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              Report Score
+              {match.status === "Pending" ? "Report Score" : "Edit Result"}
             </button>
           )}
         </div>

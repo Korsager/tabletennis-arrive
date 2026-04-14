@@ -15,6 +15,8 @@ interface RulesAdminProps {
   tournament?: Tournament;
 }
 
+const DEFAULT_RULE_TEXT = `Group stage seeding method: Bracket optimization. Seed numbers are distributed in groups by avoiding grouping those that should normally meet in the bracket (1 vs 8, 2 vs 7, 3 vs 6, 4 vs 5). This preserves classic bracket seeding and is optimal when directly following a single or double elimination structure.`;
+
 const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
   const { data: rules } = useTournamentRules(tournament?.id);
   const createTournament = useCreateTournament();
@@ -22,6 +24,7 @@ const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
   const [tournamentName, setTournamentName] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [rulesText, setRulesText] = useState(DEFAULT_RULE_TEXT);
   const [saved, setSaved] = useState(false);
 
   const handleCreateTournament = () => {
@@ -35,6 +38,7 @@ const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
         name: tournamentName.trim(),
         startDate,
         endDate,
+        description: rulesText,
       },
       {
         onSuccess: () => {
@@ -42,6 +46,7 @@ const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
           setTournamentName("");
           setStartDate("");
           setEndDate("");
+          setRulesText(DEFAULT_RULE_TEXT);
         },
         onError: () => toast.error("Failed to create tournament"),
       }
@@ -81,6 +86,15 @@ const RulesAdmin = ({ isAdmin, tournament }: RulesAdminProps) => {
                 className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-bold text-muted-foreground">Tournament Rules / Seeding Method</label>
+            <textarea
+              value={rulesText}
+              onChange={(e) => setRulesText(e.target.value)}
+              rows={4}
+              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            />
           </div>
           <button
             onClick={handleCreateTournament}
