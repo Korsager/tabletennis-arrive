@@ -399,6 +399,7 @@ export const useCreateTournament = () => {
           name,
           start_date: startDate,
           end_date: endDate,
+          signup_deadline: startDate, // Sign-up available until tournament starts
         })
         .select()
         .single();

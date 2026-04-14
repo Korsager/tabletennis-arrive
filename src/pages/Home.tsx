@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Swords, Trophy, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import ChallengeModal from "@/components/ChallengeModal";
 import { useAuth } from "@/hooks/useAuth";
@@ -61,12 +62,18 @@ const Home = () => {
     .slice(0, 5);
 
   const handleRegisterTournament = () => {
-    if (activeTournament && profile) {
-      registerForTournament({
-        tournament_id: activeTournament.id,
-        profile_id: profile.id,
-      });
+    if (!activeTournament || !profile) return;
+
+    // Check if signup is still available
+    if (!activeTournament.signup_deadline || new Date() >= new Date(activeTournament.signup_deadline)) {
+      toast.error("Registration for this tournament has closed");
+      return;
     }
+
+    registerForTournament({
+      tournament_id: activeTournament.id,
+      profile_id: profile.id,
+    });
   };
 
   return (
@@ -110,6 +117,12 @@ const Home = () => {
                   className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/80"
                 >
                   Add Test Profiles
+                </button>
+                <button
+                  onClick={() => (window as any).simulateAdminLogin()}
+                  className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-200"
+                >
+                  Login as Admin
                 </button>
               </div>
             </div>
@@ -223,9 +236,12 @@ const Home = () => {
                       {new Date(activeTournament.start_date).toLocaleDateString()} - {new Date(activeTournament.end_date).toLocaleDateString()}
                     </p>
                     {activeTournament.signup_deadline && (
-                      <p className="text-sm text-amber-600 mt-2 flex items-center gap-2">
-                        <span className="inline-block w-2 h-2 bg-amber-600 rounded-full"></span>
-                        Sign-up deadline: {new Date(activeTournament.signup_deadline).toLocaleDateString()}
+                      <p className={`text-sm mt-2 flex items-center gap-2 ${new Date() < new Date(activeTournament.signup_deadline) ? 'text-amber-600' : 'text-red-600'}`}>
+                        <span className={`inline-block w-2 h-2 rounded-full ${new Date() < new Date(activeTournament.signup_deadline) ? 'bg-amber-600' : 'bg-red-600'}`}></span>
+                        {new Date() < new Date(activeTournament.signup_deadline)
+                          ? `Sign-up deadline: ${new Date(activeTournament.signup_deadline).toLocaleDateString()}`
+                          : `Registration closed: ${new Date(activeTournament.signup_deadline).toLocaleDateString()}`
+                        }
                       </p>
                     )}
                   </div>
@@ -233,7 +249,7 @@ const Home = () => {
                     <Link to="/tournament" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                       View Tournament
                     </Link>
-                    {user && !isRegisteredForActive && (
+                    {user && !isRegisteredForActive && activeTournament.signup_deadline && new Date() < new Date(activeTournament.signup_deadline) && (
                       <button
                         onClick={handleRegisterTournament}
                         disabled={isRegistering}
