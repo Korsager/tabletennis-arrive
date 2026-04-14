@@ -6,7 +6,6 @@ import Navbar from "@/components/Navbar";
 import ChallengeModal from "@/components/ChallengeModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, useChallengeMatches, useRegisterForTournament, useTournamentParticipants, MatchRow, ChallengeMatchRow } from "@/hooks/useData";
-import { addTestTournaments, addTestProfiles } from "@/utils/dev-add-tournaments";
 
 const Home = () => {
   const { user, profile, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -24,12 +23,6 @@ const Home = () => {
   const { mutate: registerForTournament, isPending: isRegistering } = useRegisterForTournament();
   
   const isRegisteredForActive = activeTournament && participants.some(p => p.profile_id === profile?.id);
-
-  // Expose dev function to window for testing
-  useEffect(() => {
-    (window as any).addTestTournaments = addTestTournaments;
-    (window as any).addTestProfiles = addTestProfiles;
-  }, []);
 
   // Get all tournament matches
   const allTournamentMatches: MatchRow[] = [];
@@ -76,6 +69,21 @@ const Home = () => {
     });
   };
 
+  const handleRegisterTournamentForUpcoming = (tournament: any) => {
+    if (!profile) return;
+
+    // Check if signup is still available
+    if (!tournament.signup_deadline || new Date() >= new Date(tournament.signup_deadline)) {
+      toast.error("Registration for this tournament has closed");
+      return;
+    }
+
+    registerForTournament({
+      tournament_id: tournament.id,
+      profile_id: profile.id,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar
@@ -106,18 +114,6 @@ const Home = () => {
               )}
               {/* Dev buttons - remove in production */}
               <div className="flex gap-2">
-                <button
-                  onClick={() => addTestTournaments()}
-                  className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/80"
-                >
-                  Add Test Tournaments
-                </button>
-                <button
-                  onClick={() => addTestProfiles()}
-                  className="rounded-lg bg-muted px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted/80"
-                >
-                  Add Test Profiles
-                </button>
                 <button
                   onClick={() => (window as any).simulateAdminLogin()}
                   className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-200"
@@ -229,9 +225,6 @@ const Home = () => {
                 <div className="flex items-start justify-between gap-6">
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{activeTournament.name}</h3>
-                    {activeTournament.description && (
-                      <p className="text-muted-foreground text-sm mt-1">{activeTournament.description}</p>
-                    )}
                     <p className="text-muted-foreground">
                       {new Date(activeTournament.start_date).toLocaleDateString()} - {new Date(activeTournament.end_date).toLocaleDateString()}
                     </p>
@@ -275,19 +268,34 @@ const Home = () => {
                 <div className="grid gap-4 md:grid-cols-2">
                   {upcomingTournaments.map((tournament) => (
                     <div key={tournament.id} className="rounded-lg border bg-muted/30 p-4">
-                      <h3 className="font-semibold text-lg mb-2">{tournament.name}</h3>
-                      {tournament.description && (
-                        <p className="text-muted-foreground text-sm mb-2">{tournament.description}</p>
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
-                      </p>
-                      {tournament.signup_deadline && (
-                        <p className="text-sm text-amber-600 mt-2 flex items-center gap-2">
-                          <span className="inline-block w-2 h-2 bg-amber-600 rounded-full"></span>
-                          Sign-up deadline: {new Date(tournament.signup_deadline).toLocaleDateString()}
-                        </p>
-                      )}
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-2">{tournament.name}</h3>
+                          {tournament.description && (
+                            <p className="text-muted-foreground text-sm mb-2">{tournament.description}</p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                          </p>
+                          {tournament.signup_deadline && (
+                            <p className="text-sm text-amber-600 mt-2 flex items-center gap-2">
+                              <span className="inline-block w-2 h-2 bg-amber-600 rounded-full"></span>
+                              Sign-up deadline: {new Date(tournament.signup_deadline).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {user && tournament.signup_deadline && new Date() < new Date(tournament.signup_deadline) && (
+                            <button
+                              onClick={() => handleRegisterTournamentForUpcoming(tournament)}
+                              disabled={isRegistering}
+                              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-green-700 disabled:opacity-50"
+                            >
+                              {isRegistering ? "Registering..." : "Sign Up"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -296,31 +304,19 @@ const Home = () => {
 
             {/* Previous Tournaments */}
             {previousTournaments.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold mb-4">Previous Tournaments</h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <h2 className="text-xl font-bold mb-4">Previous Tournaments</h2>
+                <div className="grid gap-4 md:grid-cols-2">
                   {previousTournaments.map((tournament) => (
-                    <Link
-                      key={tournament.id}
-                      to={`/tournament/${tournament.id}`}
-                      className="group rounded-2xl border bg-card p-6 shadow-sm hover:shadow-md hover:border-primary/50 transition-all"
-                    >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg text-foreground group-hover:text-primary transition-colors">{tournament.name}</h3>
-                          {tournament.description && (
-                            <p className="text-sm text-muted-foreground mt-1">{tournament.description}</p>
-                          )}
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <Trophy className="text-amber-500 ml-2 flex-shrink-0" size={20} />
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        Click to view matches, standings & winner
-                      </div>
-                    </Link>
+                    <div key={tournament.id} className="rounded-lg border bg-muted/30 p-4">
+                      <h3 className="font-semibold text-lg mb-2">{tournament.name}</h3>
+                      {tournament.description && (
+                        <p className="text-muted-foreground text-sm mb-2">{tournament.description}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(tournament.start_date).toLocaleDateString()} - {new Date(tournament.end_date).toLocaleDateString()}
+                      </p>
+                    </div>
                   ))}
                 </div>
               </div>
