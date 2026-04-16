@@ -50,8 +50,18 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = 
     // If statuses are equal, sort by round
     const getRoundNumber = (match: any) => {
       if (match.type === 'challenge') return -1; // Challenge matches first (before Round 1)
-      const roundNum = parseInt(match.round?.replace('Round ', '') || '0');
-      return roundNum;
+      // Handle both string rounds (playoff: "QF", "SF", "Final") and numeric rounds (group stage: 1, 2, 3)
+      if (typeof match.round === 'string') {
+        // For playoff matches, assign numeric values
+        if (match.round === 'QF') return 100;
+        if (match.round === 'SF') return 101;
+        if (match.round === 'Final') return 102;
+        // Try to parse as number if it contains digits
+        const parsed = parseInt(match.round);
+        return isNaN(parsed) ? 0 : parsed;
+      }
+      // For numeric rounds (group stage)
+      return match.round || 0;
     };
     
     const roundA = getRoundNumber(a);
