@@ -293,23 +293,25 @@ export const winter2025Matches: Match[] = [
 
 // Playoff matches for Spring 2026 League (active tournament)
 export const playoffBracket: PlayoffMatch[] = [
-  { id: "qf1", round: "QF", player1: "p3", player2: "p6", score1: 3, score2: 1, winner: "p3" },
-  { id: "qf2", round: "QF", player1: "p4", player2: "p5", score1: 3, score2: 2, winner: "p4" },
-  { id: "qf3", round: "QF", player1: "p7", player2: "p9", score1: null, score2: null, winner: null },
-  { id: "qf4", round: "QF", player1: "p8", player2: "p10", score1: null, score2: null, winner: null },
+  // Quarterfinals: Seeds 3-6
+  { id: "qf1", round: "QF", player1: "p3", player2: "p8", score1: 3, score2: 1, winner: "p3" },
+  { id: "qf2", round: "QF", player1: "p4", player2: "p7", score1: 3, score2: 2, winner: "p4" },
+  // Semifinals: Seeds 1-2 with QF winners
   { id: "sf1", round: "SF", player1: "p1", player2: "p3", score1: null, score2: null, winner: null },
   { id: "sf2", round: "SF", player1: "p2", player2: "p4", score1: null, score2: null, winner: null },
+  // Final
   { id: "f1", round: "Final", player1: null, player2: null, score1: null, score2: null, winner: null },
 ];
 
 // Playoff matches for Winter 2025 League (finished tournament)
 export const winter2025Playoffs: PlayoffMatch[] = [
-  { id: "wqf1", round: "QF", player1: "p33", player2: "p36", score1: 3, score2: 1, winner: "p33" },
-  { id: "wqf2", round: "QF", player1: "p34", player2: "p35", score1: 3, score2: 2, winner: "p34" },
-  { id: "wqf3", round: "QF", player1: "p37", player2: "p38", score1: 3, score2: 0, winner: "p37" },
-  { id: "wqf4", round: "QF", player1: "p39", player2: "p40", score1: 2, score2: 3, winner: "p40" },
+  // Quarterfinals: Seeds 3-6
+  { id: "wqf1", round: "QF", player1: "p33", player2: "p38", score1: 3, score2: 1, winner: "p33" },
+  { id: "wqf2", round: "QF", player1: "p34", player2: "p37", score1: 3, score2: 2, winner: "p34" },
+  // Semifinals: Seeds 1-2 with QF winners
   { id: "wsf1", round: "SF", player1: "p31", player2: "p33", score1: 3, score2: 1, winner: "p31" },
   { id: "wsf2", round: "SF", player1: "p32", player2: "p34", score1: 3, score2: 2, winner: "p32" },
+  // Final
   { id: "wf1", round: "Final", player1: "p31", player2: "p32", score1: 3, score2: 1, winner: "p31" },
 ];
 
@@ -324,6 +326,7 @@ export const challengeMatches = [
     score1: null,
     score2: null,
     winner_id: null,
+    match_format: "BO3",
     challenger: { id: "p1", display_name: "Alex Chen", elo: 1580 },
     challenged: { id: "p2", display_name: "Sarah Kim", elo: 1520 },
     winner: null,
@@ -337,6 +340,7 @@ export const challengeMatches = [
     score1: null,
     score2: null,
     winner_id: null,
+    match_format: "BO5",
     challenger: { id: "p3", display_name: "Marcus Johnson", elo: 1480 },
     challenged: { id: "p4", display_name: "Emily Wang", elo: 1450 },
     winner: null,

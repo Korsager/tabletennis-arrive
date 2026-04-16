@@ -49,6 +49,7 @@ export interface ChallengeMatchRow {
   score1: number | null;
   score2: number | null;
   winner_id: string | null;
+  match_format?: string;
   challenger: { id: string; display_name: string; elo: number };
   challenged: { id: string; display_name: string; elo: number };
   winner: { id: string; display_name: string } | null;
@@ -352,10 +353,12 @@ export const useCreateChallenge = () => {
       challengerId,
       challengedId,
       scheduledAt,
+      matchFormat,
     }: {
       challengerId: string;
       challengedId: string;
       scheduledAt: string;
+      matchFormat?: string;
     }) => {
       const { error } = await supabase
         .from("challenge_matches")
@@ -363,6 +366,7 @@ export const useCreateChallenge = () => {
           challenger_id: challengerId,
           challenged_id: challengedId,
           scheduled_at: scheduledAt,
+          match_format: matchFormat || "BO3",
         });
       if (error) throw error;
     },

@@ -9,6 +9,18 @@ const PowerRankings = ({ profiles, onPlayerClick }: PowerRankingsProps) => {
   // Sort all registered players by ELO (highest first = seed 1)
   const sorted = [...profiles].sort((a, b) => (b.elo || 0) - (a.elo || 0));
 
+  const getSeedBadge = (seed: number) => {
+    const colors = ["bg-yellow-400 text-yellow-900", "bg-gray-300 text-gray-800", "bg-amber-600 text-amber-100"];
+    if (seed <= 3) {
+      return (
+        <span className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${colors[seed - 1]}`}>
+          {seed}
+        </span>
+      );
+    }
+    return <span className="flex h-7 w-7 items-center justify-center text-sm font-bold text-muted-foreground">{seed}</span>;
+  };
+
   if (profiles.length === 0) {
     return (
       <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">

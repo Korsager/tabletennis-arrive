@@ -63,7 +63,15 @@ const Tournament = () => {
           />
         )}
         {activeTab === "matches" && (
-          <MatchesView matches={matches} challengeMatches={challengeMatches} onReportScore={setReportMatch} isAdmin={isAdmin} currentUser={profile} />
+          <MatchesView 
+            matches={matches} 
+            challengeMatches={challengeMatches} 
+            onReportScore={setReportMatch} 
+            isAdmin={isAdmin} 
+            currentUser={profile}
+            disputedMatchIds={disputedApprovals.map(a => a.match_id)}
+            pendingApprovalMatchIds={matchesPendingApproval.map(m => m.id)}
+          />
         )}
         {activeTab === "playoffs" && (
           <PlayoffsView playoffMatches={playoffMatches} />

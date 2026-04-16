@@ -13,6 +13,7 @@ const ChallengeModal = ({ profiles, onClose }: ChallengeModalProps) => {
   const { user } = useAuth();
   const [challengedId, setChallengedId] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [matchFormat, setMatchFormat] = useState("BO3");
   const createChallenge = useCreateChallenge();
 
   const availableOpponents = profiles.filter(p => p.user_id !== user?.id);
@@ -34,6 +35,7 @@ const ChallengeModal = ({ profiles, onClose }: ChallengeModalProps) => {
         challengerId: user!.id,
         challengedId,
         scheduledAt: scheduledDate.toISOString(),
+        matchFormat,
       },
       {
         onSuccess: () => {
@@ -68,6 +70,22 @@ const ChallengeModal = ({ profiles, onClose }: ChallengeModalProps) => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-foreground">Match Format</label>
+            <select
+              value={matchFormat}
+              onChange={(e) => setMatchFormat(e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="BO1">Best of 1 (Single Game)</option>
+              <option value="BO3">Best of 3 (First to 2 wins)</option>
+              <option value="BO5">Best of 5 (First to 3 wins)</option>
+            </select>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Select the match format before scheduling.
+            </p>
           </div>
 
           <div>
