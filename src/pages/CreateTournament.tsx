@@ -30,9 +30,12 @@ const CreateTournament = () => {
     createTournament.mutate(
       {
         name: name.trim(),
-        startDate,
-        endDate,
-        description,
+        start_date: startDate,
+        end_date: endDate,
+        best_of: 5,
+        group_count: null,
+        playoff_size: null,
+        rules: description,
       },
       {
         onSuccess: (data) => {
