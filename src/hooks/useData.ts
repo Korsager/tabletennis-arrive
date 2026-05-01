@@ -448,23 +448,42 @@ export const useCreateTournament = () => {
   return useMutation({
     mutationFn: async ({
       name,
-      startDate,
-      endDate,
-      description,
+      start_date,
+      end_date,
+      best_of,
+      group_count,
+      playoff_size,
+      rules,
+      archiveCurrentId,
     }: {
       name: string;
-      startDate: string;
-      endDate: string;
-      description?: string;
+      start_date: string;
+      end_date: string;
+      best_of: number;
+      group_count: number | null;
+      playoff_size: number | null;
+      rules: string;
+      archiveCurrentId?: string;
     }) => {
-      const { data, error } = await supabase
+      if (archiveCurrentId) {
+        const { error: archiveError } = await supabaseTyped
+          .from("tournaments")
+          .update({ active: false })
+          .eq("id", archiveCurrentId);
+        if (archiveError) throw archiveError;
+      }
+
+      const { data, error } = await supabaseTyped
         .from("tournaments")
         .insert({
           name,
-          start_date: startDate,
-          end_date: endDate,
-          signup_deadline: startDate, // Sign-up available until tournament starts
-          description,
+          start_date,
+          end_date,
+          best_of,
+          group_count,
+          playoff_size,
+          rules,
+          active: true,
         })
         .select()
         .single();
