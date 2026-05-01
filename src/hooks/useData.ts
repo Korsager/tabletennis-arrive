@@ -717,7 +717,7 @@ export const useUpdateTournament = () => {
       }
       const { error } = await supabaseTyped
         .from("tournaments")
-        .update(update)
+        .update(update as never)
         .eq("id", tournamentId);
       if (error) throw error;
     },
@@ -791,7 +791,7 @@ export const useUpdateTournamentParticipant = () => {
       if (seed !== undefined) update.seed = seed;
       const { error } = await supabaseTyped
         .from("tournament_participants")
-        .update(update)
+        .update(update as never)
         .eq("id", id);
       if (error) throw error;
     },
