@@ -68,8 +68,10 @@ export interface TournamentParticipantRow {
   id: string;
   tournament_id: string;
   profile_id: string;
-  joined_at: string;
-  profile: { id: string; display_name: string; elo: number };
+  group_name: string | null;
+  seed: number | null;
+  joined_at?: string;
+  profile: ProfileRow;
 }
 
 export interface TournamentRulesRow {
@@ -223,9 +225,41 @@ export const useTournamentParticipants = (tournamentId: string | null) =>
     queryKey: ["tournament_participants", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
-      const participants = mockTournamentParticipants.filter(tp => tp.tournament_id === tournamentId);
-      return participants as TournamentParticipantRow[];
+      const { data, error } = await supabaseTyped
+        .from("tournament_participants")
+        .select("id, tournament_id, profile_id, group_name, seed, profile:profiles!tournament_participants_profile_id_fkey(id, user_id, display_name, elo)")
+        .eq("tournament_id", tournamentId!);
+
+      if (error || !data || data.length === 0) {
+        // Fall back to mock data so UI still works while DB is empty
+        const participants = mockTournamentParticipants.filter(tp => tp.tournament_id === tournamentId);
+        return participants.map(tp => ({
+          id: tp.id,
+          tournament_id: tp.tournament_id,
+          profile_id: tp.profile_id,
+          group_name: null,
+          seed: null,
+          profile: {
+            id: tp.profile.id,
+            user_id: tp.profile.id,
+            display_name: tp.profile.display_name,
+            elo: tp.profile.elo,
+            visible_in_ranking: true,
+          },
+        })) as TournamentParticipantRow[];
+      }
+
+      return (data as unknown as Array<{
+        id: string;
+        tournament_id: string;
+        profile_id: string;
+        group_name: string | null;
+        seed: number | null;
+        profile: { id: string; user_id: string; display_name: string; elo: number };
+      }>).map(row => ({
+        ...row,
+        profile: { ...row.profile, visible_in_ranking: true },
+      })) as TournamentParticipantRow[];
     },
   });
 
