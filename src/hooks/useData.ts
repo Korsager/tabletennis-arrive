@@ -1,6 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { players as mockPlayers, tournaments as mockTournaments, tournamentParticipants as mockTournamentParticipants, matches as mockMatches, playoffBracket as mockPlayoffBracket, challengeMatches as mockChallengeMatches, matchApprovals as mockMatchApprovals, rules as mockRules } from "@/data/mockData";
+
+// Cast the Supabase client to `any` for legacy hooks that reference columns or
+// tables not yet present in the generated types (visible_in_ranking,
+// challenge_matches, match_approvals, signup_deadline, etc.).
+// New hooks added in this phase use `supabaseTyped` for proper typing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = supabaseClient;
+const supabaseTyped = supabaseClient;
 
 // Types for joined data
 export interface ProfileRow {
