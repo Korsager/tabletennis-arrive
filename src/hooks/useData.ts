@@ -13,10 +13,10 @@ const supabaseTyped = supabaseClient;
 // Types for joined data
 export interface ProfileRow {
   id: string;
-  user_id: string;
+  user_id?: string;
   display_name: string;
   elo: number;
-  visible_in_ranking: boolean;
+  visible_in_ranking?: boolean;
 }
 
 export interface MatchRow {
