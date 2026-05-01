@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  profile: { id: string; display_name: string; elo: number } | null;
+  profile: { id: string; display_name: string; elo: number; user_id?: string; visible_in_ranking?: boolean } | null;
   isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
