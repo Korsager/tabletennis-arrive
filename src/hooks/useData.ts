@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { players as mockPlayers, tournaments as mockTournaments, tournamentParticipants as mockTournamentParticipants, matches as mockMatches, playoffBracket as mockPlayoffBracket, challengeMatches as mockChallengeMatches, matchApprovals as mockMatchApprovals, rules as mockRules } from "@/data/mockData";
 
 // Types for joined data
