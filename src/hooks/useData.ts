@@ -165,7 +165,7 @@ export const useMatches = (tournamentId: string | null) =>
         updated_at: "2025-01-01T00:00:00Z",
         player1: { id: m.player1, display_name: mockPlayers.find(p => p.id === m.player1)?.name || "" },
         player2: { id: m.player2, display_name: mockPlayers.find(p => p.id === m.player2)?.name || "" },
-      })) as MatchRow[];
+      })) as unknown as MatchRow[];
     },
   });
 
@@ -191,7 +191,7 @@ export const usePlayoffMatches = (tournamentId: string | null) =>
         player1: p.player1 ? { id: p.player1, display_name: mockPlayers.find(pl => pl.id === p.player1)?.name || "" } : null,
         player2: p.player2 ? { id: p.player2, display_name: mockPlayers.find(pl => pl.id === p.player2)?.name || "" } : null,
         winner: p.winner ? { id: p.winner, display_name: mockPlayers.find(pl => pl.id === p.winner)?.name || "" } : null,
-      })) as PlayoffMatchRow[];
+      })) as unknown as PlayoffMatchRow[];
     },
   });
 
