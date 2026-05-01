@@ -9,6 +9,7 @@ import PowerRankings from "@/components/PowerRankings";
 import RulesAdmin from "@/components/RulesAdmin";
 import ReportScoreModal from "@/components/ReportScoreModal";
 import PlayerHistoryModal from "@/components/PlayerHistoryModal";
+import CreateTournamentModal from "@/components/CreateTournamentModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants, useTournamentMatchApprovals, useApproveMatchResult } from "@/hooks/useData";
 
@@ -41,6 +42,7 @@ const Tournament = () => {
 
   const [reportMatch, setReportMatch] = useState<MatchRow | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<ProfileRow | null>(null);
+  const [showCreateTournament, setShowCreateTournament] = useState<{ archiveCurrentId?: string } | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,6 +86,9 @@ const Tournament = () => {
             <RulesAdmin
               isAdmin={isAdmin}
               tournament={tournaments.find((t) => t.id === currentTournamentId)}
+              onCreateTournament={(archiveCurrentId) =>
+                setShowCreateTournament({ archiveCurrentId })
+              }
             />
             {isAdmin && (disputedApprovals.length > 0 || matchesPendingApproval.length > 0) && (
               <div className="rounded-2xl border bg-card p-6 shadow-sm mt-6">
@@ -176,6 +181,12 @@ const Tournament = () => {
       )}
       {selectedPlayer && (
         <PlayerHistoryModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+      )}
+      {showCreateTournament && (
+        <CreateTournamentModal
+          archiveCurrentId={showCreateTournament.archiveCurrentId}
+          onClose={() => setShowCreateTournament(null)}
+        />
       )}
     </div>
   );

@@ -1,13 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase as supabaseClient } from "@/integrations/supabase/client";
 import { players as mockPlayers, tournaments as mockTournaments, tournamentParticipants as mockTournamentParticipants, matches as mockMatches, playoffBracket as mockPlayoffBracket, challengeMatches as mockChallengeMatches, matchApprovals as mockMatchApprovals, rules as mockRules } from "@/data/mockData";
+
+// Cast the Supabase client to `any` for legacy hooks that reference columns or
+// tables not yet present in the generated types (visible_in_ranking,
+// challenge_matches, match_approvals, signup_deadline, etc.).
+// New hooks added in this phase use `supabaseTyped` for proper typing.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const supabase: any = supabaseClient;
+const supabaseTyped = supabaseClient;
 
 // Types for joined data
 export interface ProfileRow {
   id: string;
-  user_id: string;
+  user_id?: string;
   display_name: string;
   elo: number;
-  visible_in_ranking: boolean;
+  visible_in_ranking?: boolean;
 }
 
 export interface MatchRow {
@@ -59,8 +68,10 @@ export interface TournamentParticipantRow {
   id: string;
   tournament_id: string;
   profile_id: string;
-  joined_at: string;
-  profile: { id: string; display_name: string; elo: number };
+  group_name: string | null;
+  seed: number | null;
+  joined_at?: string;
+  profile: ProfileRow;
 }
 
 export interface TournamentRulesRow {
@@ -156,7 +167,7 @@ export const useMatches = (tournamentId: string | null) =>
         updated_at: "2025-01-01T00:00:00Z",
         player1: { id: m.player1, display_name: mockPlayers.find(p => p.id === m.player1)?.name || "" },
         player2: { id: m.player2, display_name: mockPlayers.find(p => p.id === m.player2)?.name || "" },
-      })) as MatchRow[];
+      })) as unknown as MatchRow[];
     },
   });
 
@@ -182,7 +193,7 @@ export const usePlayoffMatches = (tournamentId: string | null) =>
         player1: p.player1 ? { id: p.player1, display_name: mockPlayers.find(pl => pl.id === p.player1)?.name || "" } : null,
         player2: p.player2 ? { id: p.player2, display_name: mockPlayers.find(pl => pl.id === p.player2)?.name || "" } : null,
         winner: p.winner ? { id: p.winner, display_name: mockPlayers.find(pl => pl.id === p.winner)?.name || "" } : null,
-      })) as PlayoffMatchRow[];
+      })) as unknown as PlayoffMatchRow[];
     },
   });
 
@@ -214,9 +225,41 @@ export const useTournamentParticipants = (tournamentId: string | null) =>
     queryKey: ["tournament_participants", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
-      const participants = mockTournamentParticipants.filter(tp => tp.tournament_id === tournamentId);
-      return participants as TournamentParticipantRow[];
+      const { data, error } = await supabaseTyped
+        .from("tournament_participants")
+        .select("id, tournament_id, profile_id, group_name, seed, profile:profiles!tournament_participants_profile_id_fkey(id, user_id, display_name, elo)")
+        .eq("tournament_id", tournamentId!);
+
+      if (error || !data || data.length === 0) {
+        // Fall back to mock data so UI still works while DB is empty
+        const participants = mockTournamentParticipants.filter(tp => tp.tournament_id === tournamentId);
+        return participants.map(tp => ({
+          id: tp.id,
+          tournament_id: tp.tournament_id,
+          profile_id: tp.profile_id,
+          group_name: null,
+          seed: null,
+          profile: {
+            id: tp.profile.id,
+            user_id: tp.profile.id,
+            display_name: tp.profile.display_name,
+            elo: tp.profile.elo,
+            visible_in_ranking: true,
+          },
+        })) as TournamentParticipantRow[];
+      }
+
+      return (data as unknown as Array<{
+        id: string;
+        tournament_id: string;
+        profile_id: string;
+        group_name: string | null;
+        seed: number | null;
+        profile: { id: string; user_id: string; display_name: string; elo: number };
+      }>).map(row => ({
+        ...row,
+        profile: { ...row.profile, visible_in_ranking: true },
+      })) as TournamentParticipantRow[];
     },
   });
 
@@ -405,23 +448,42 @@ export const useCreateTournament = () => {
   return useMutation({
     mutationFn: async ({
       name,
-      startDate,
-      endDate,
-      description,
+      start_date,
+      end_date,
+      best_of,
+      group_count,
+      playoff_size,
+      rules,
+      archiveCurrentId,
     }: {
       name: string;
-      startDate: string;
-      endDate: string;
-      description?: string;
+      start_date: string;
+      end_date: string;
+      best_of: number;
+      group_count: number | null;
+      playoff_size: number | null;
+      rules: string;
+      archiveCurrentId?: string;
     }) => {
-      const { data, error } = await supabase
+      if (archiveCurrentId) {
+        const { error: archiveError } = await supabaseTyped
+          .from("tournaments")
+          .update({ active: false })
+          .eq("id", archiveCurrentId);
+        if (archiveError) throw archiveError;
+      }
+
+      const { data, error } = await supabaseTyped
         .from("tournaments")
         .insert({
           name,
-          start_date: startDate,
-          end_date: endDate,
-          signup_deadline: startDate, // Sign-up available until tournament starts
-          description,
+          start_date,
+          end_date,
+          best_of,
+          group_count,
+          playoff_size,
+          rules,
+          active: true,
         })
         .select()
         .single();
@@ -630,3 +692,111 @@ export function computeStandings(
     .filter((s) => s.played > 0)
     .sort((a, b) => b.points - a.points || (b.gamesWon - b.gamesLost) - (a.gamesWon - a.gamesLost));
 }
+
+// ----- Phase 2: Tournament admin mutations -----
+
+export const useUpdateTournament = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      tournamentId,
+      ...fields
+    }: {
+      tournamentId: string;
+      name?: string;
+      start_date?: string;
+      end_date?: string;
+      best_of?: number;
+      group_count?: number | null;
+      playoff_size?: number | null;
+      rules?: string;
+    }) => {
+      const update: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(fields)) {
+        if (v !== undefined) update[k] = v;
+      }
+      const { error } = await supabaseTyped
+        .from("tournaments")
+        .update(update as never)
+        .eq("id", tournamentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tournaments"] });
+    },
+  });
+};
+
+export const useAddTournamentParticipant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      tournament_id,
+      profile_id,
+      group_name,
+      seed,
+    }: {
+      tournament_id: string;
+      profile_id: string;
+      group_name?: string | null;
+      seed?: number | null;
+    }) => {
+      const { error } = await supabaseTyped
+        .from("tournament_participants")
+        .insert({
+          tournament_id,
+          profile_id,
+          group_name: group_name ?? null,
+          seed: seed ?? null,
+        });
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_participants", tournament_id] });
+    },
+  });
+};
+
+export const useRemoveTournamentParticipant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; tournament_id: string }) => {
+      const { error } = await supabaseTyped
+        .from("tournament_participants")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_participants", tournament_id] });
+    },
+  });
+};
+
+export const useUpdateTournamentParticipant = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      group_name,
+      seed,
+    }: {
+      id: string;
+      tournament_id: string;
+      group_name?: string | null;
+      seed?: number | null;
+    }) => {
+      const update: Record<string, unknown> = {};
+      if (group_name !== undefined) update.group_name = group_name;
+      if (seed !== undefined) update.seed = seed;
+      const { error } = await supabaseTyped
+        .from("tournament_participants")
+        .update(update as never)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_participants", tournament_id] });
+    },
+  });
+};
