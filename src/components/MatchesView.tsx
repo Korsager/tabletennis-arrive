@@ -1,4 +1,7 @@
-import { MatchRow, ChallengeMatchRow, ProfileRow } from "@/hooks/useData";
+import { useState } from "react";
+import { Calendar } from "lucide-react";
+import { toast } from "sonner";
+import { MatchRow, ChallengeMatchRow, ProfileRow, useUpdateMatchSchedule } from "@/hooks/useData";
 
 interface MatchesViewProps {
   matches: MatchRow[];
@@ -8,9 +11,12 @@ interface MatchesViewProps {
   currentUser?: ProfileRow | null;
   disputedMatchIds?: string[];
   pendingApprovalMatchIds?: string[];
+  onGenerateMatches?: () => void;
 }
 
-const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = false, currentUser, disputedMatchIds = [], pendingApprovalMatchIds = [] }: MatchesViewProps) => {
+const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = false, currentUser, disputedMatchIds = [], pendingApprovalMatchIds = [], onGenerateMatches }: MatchesViewProps) => {
+  const [scheduleEditingId, setScheduleEditingId] = useState<string | null>(null);
+  const updateSchedule = useUpdateMatchSchedule();
   const allMatches = [
     ...matches.map(m => ({ ...m, type: 'tournament' as const })),
     ...challengeMatches.map(m => ({ ...m, type: 'challenge' as const })),
@@ -70,16 +76,46 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = 
     return roundA - roundB;
   });
 
+  const header = isAdmin && onGenerateMatches ? (
+    <div className="mb-4 flex justify-end">
+      <button
+        onClick={onGenerateMatches}
+        className="rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+      >
+        Generate Matches
+      </button>
+    </div>
+  ) : null;
+
   if (allMatches.length === 0) {
     return (
-      <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">
-        <p className="text-muted-foreground">No matches scheduled yet.</p>
+      <div>
+        {header}
+        <div className="rounded-2xl border bg-card p-12 text-center shadow-sm">
+          <p className="text-muted-foreground">No matches scheduled yet.</p>
+        </div>
       </div>
     );
   }
 
+  const handleScheduleChange = (match: MatchRow, value: string) => {
+    const iso = value ? new Date(value).toISOString() : null;
+    updateSchedule.mutate(
+      { matchId: match.id, scheduled_at: iso, tournamentId: match.tournament_id },
+      {
+        onSuccess: () => {
+          toast.success(iso ? "Match scheduled" : "Schedule cleared");
+          setScheduleEditingId(null);
+        },
+        onError: (err) => toast.error("Failed to schedule: " + err.message),
+      }
+    );
+  };
+
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div>
+      {header}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {allMatches.map((match) => (
         <div key={match.id} className="flex flex-col overflow-hidden rounded-2xl border bg-card shadow-sm transition-shadow hover:shadow-lg">
           <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2.5">
@@ -139,9 +175,30 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = 
               </div>
             </div>
             {match.scheduled_at && (
-              <div className="mt-2 text-xs text-muted-foreground">
-                {new Date(match.scheduled_at).toLocaleDateString()} at{' '}
+              <div className="mt-2 inline-flex w-fit items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                <Calendar size={12} />
+                {new Date(match.scheduled_at).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}{' '}
                 {new Date(match.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {isAdmin && match.type === 'tournament' && (
+              <div className="mt-2">
+                {scheduleEditingId === match.id ? (
+                  <input
+                    type="datetime-local"
+                    autoFocus
+                    defaultValue={match.scheduled_at ? new Date(match.scheduled_at).toISOString().slice(0, 16) : ''}
+                    onBlur={(e) => handleScheduleChange(match as MatchRow, e.target.value)}
+                    className="w-full rounded-md border bg-background px-2 py-1 text-xs"
+                  />
+                ) : (
+                  <button
+                    onClick={() => setScheduleEditingId(match.id)}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    📅 {match.scheduled_at ? 'Reschedule' : 'Schedule'}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -155,6 +212,7 @@ const MatchesView = ({ matches, challengeMatches = [], onReportScore, isAdmin = 
           )}
         </div>
       ))}
+      </div>
     </div>
   );
 };
