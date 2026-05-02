@@ -158,7 +158,10 @@ export type Database = {
       playoff_matches: {
         Row: {
           best_of: number
+          bracket_slot: number | null
           created_at: string
+          feeds_into_position: string | null
+          feeds_into_slot: number | null
           id: string
           player1_id: string | null
           player2_id: string | null
@@ -172,7 +175,10 @@ export type Database = {
         }
         Insert: {
           best_of?: number
+          bracket_slot?: number | null
           created_at?: string
+          feeds_into_position?: string | null
+          feeds_into_slot?: number | null
           id?: string
           player1_id?: string | null
           player2_id?: string | null
@@ -186,7 +192,10 @@ export type Database = {
         }
         Update: {
           best_of?: number
+          bracket_slot?: number | null
           created_at?: string
+          feeds_into_position?: string | null
+          feeds_into_slot?: number | null
           id?: string
           player1_id?: string | null
           player2_id?: string | null
