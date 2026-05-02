@@ -804,3 +804,265 @@ export const useUpdateTournamentParticipant = () => {
     },
   });
 };
+
+// ----- Phase 3: Match scheduling & per-game scoring -----
+
+/**
+ * Round-robin "circle method" pairings for a list of player ids.
+ * Returns array of rounds, each round is an array of [p1, p2] pairs.
+ */
+function circleMethodPairings(playerIds: string[]): Array<Array<[string, string]>> {
+  const players = [...playerIds];
+  if (players.length < 2) return [];
+  const hasBye = players.length % 2 === 1;
+  if (hasBye) players.push("__BYE__");
+  const n = players.length;
+  const numRounds = n - 1;
+  const half = n / 2;
+  const rounds: Array<Array<[string, string]>> = [];
+  const arr = [...players];
+  for (let r = 0; r < numRounds; r++) {
+    const pairs: Array<[string, string]> = [];
+    for (let i = 0; i < half; i++) {
+      const a = arr[i];
+      const b = arr[n - 1 - i];
+      if (a !== "__BYE__" && b !== "__BYE__") pairs.push([a, b]);
+    }
+    rounds.push(pairs);
+    // rotate (keep first fixed)
+    const fixed = arr[0];
+    const rest = arr.slice(1);
+    rest.unshift(rest.pop()!);
+    arr.splice(0, arr.length, fixed, ...rest);
+  }
+  return rounds;
+}
+
+export const useGenerateGroupMatches = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournament_id }: { tournament_id: string }) => {
+      // 1. Tournament best_of
+      const { data: tournament, error: tErr } = await supabaseTyped
+        .from("tournaments")
+        .select("best_of")
+        .eq("id", tournament_id)
+        .single();
+      if (tErr) throw tErr;
+      const bestOf = tournament?.best_of ?? 5;
+
+      // 2. Existing group matches
+      const { data: existing, error: exErr } = await supabaseTyped
+        .from("matches")
+        .select("id")
+        .eq("tournament_id", tournament_id)
+        .eq("match_type", "group");
+      if (exErr) throw exErr;
+      if (existing && existing.length > 0) {
+        throw new Error(
+          "Group matches already generated for this tournament. Delete existing matches first."
+        );
+      }
+
+      // 3. Participants
+      const { data: parts, error: pErr } = await supabaseTyped
+        .from("tournament_participants")
+        .select("profile_id, group_name")
+        .eq("tournament_id", tournament_id);
+      if (pErr) throw pErr;
+      if (!parts || parts.length < 2) {
+        throw new Error("Need at least 2 participants to generate matches.");
+      }
+
+      // 4. Group by group_name
+      const groups = new Map<string | null, string[]>();
+      for (const p of parts) {
+        const key = p.group_name ?? null;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(p.profile_id);
+      }
+
+      // 5. Build matches
+      const toInsert: Array<{
+        tournament_id: string;
+        match_type: string;
+        group_name: string | null;
+        round: number;
+        player1_id: string;
+        player2_id: string;
+        best_of: number;
+        status: string;
+        scheduled_at: null;
+      }> = [];
+      for (const [groupName, playerIds] of groups.entries()) {
+        const rounds = circleMethodPairings(playerIds);
+        rounds.forEach((pairs, idx) => {
+          for (const [p1, p2] of pairs) {
+            toInsert.push({
+              tournament_id,
+              match_type: "group",
+              group_name: groupName,
+              round: idx + 1,
+              player1_id: p1,
+              player2_id: p2,
+              best_of: bestOf,
+              status: "Pending",
+              scheduled_at: null,
+            });
+          }
+        });
+      }
+
+      if (toInsert.length === 0) {
+        throw new Error("No matches generated — check participant groups.");
+      }
+
+      const { error: insErr } = await supabaseTyped
+        .from("matches")
+        .insert(toInsert as never);
+      if (insErr) throw insErr;
+      return { count: toInsert.length };
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["matches", tournament_id] });
+    },
+  });
+};
+
+export const useDeleteAllGroupMatches = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournament_id }: { tournament_id: string }) => {
+      const { error } = await supabaseTyped
+        .from("matches")
+        .delete()
+        .eq("tournament_id", tournament_id)
+        .eq("match_type", "group");
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["matches", tournament_id] });
+    },
+  });
+};
+
+export const useUpdateMatchSchedule = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      matchId,
+      scheduled_at,
+    }: {
+      matchId: string;
+      scheduled_at: string | null;
+      tournamentId: string | null;
+    }) => {
+      const { error } = await supabaseTyped
+        .from("matches")
+        .update({ scheduled_at } as never)
+        .eq("id", matchId);
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournamentId }) => {
+      queryClient.invalidateQueries({ queryKey: ["matches", tournamentId] });
+    },
+  });
+};
+
+export interface ReportMatchGameInput {
+  game_number: number;
+  p1_score: number;
+  p2_score: number;
+}
+
+export const useReportMatchScore = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      matchId,
+      games,
+      forfeitBy,
+    }: {
+      matchId: string;
+      games: ReportMatchGameInput[];
+      forfeitBy?: string | null;
+      tournamentId: string | null;
+    }) => {
+      // Validate
+      if (games.length < 1 || games.length > 5) {
+        throw new Error("Must report between 1 and 5 games.");
+      }
+      const sortedGames = [...games].sort((a, b) => a.game_number - b.game_number);
+      for (let i = 0; i < sortedGames.length; i++) {
+        if (sortedGames[i].game_number !== i + 1) {
+          throw new Error("Game numbers must be contiguous starting from 1.");
+        }
+      }
+
+      // Compute totals
+      let score1 = 0;
+      let score2 = 0;
+      for (const g of sortedGames) {
+        if (g.p1_score > g.p2_score) score1++;
+        else if (g.p2_score > g.p1_score) score2++;
+      }
+
+      // Fetch match for player ids
+      const { data: match, error: mErr } = await supabaseTyped
+        .from("matches")
+        .select("player1_id, player2_id")
+        .eq("id", matchId)
+        .single();
+      if (mErr) throw mErr;
+
+      let winner_id: string | null = null;
+      if (forfeitBy) {
+        winner_id =
+          forfeitBy === match.player1_id
+            ? match.player2_id
+            : forfeitBy === match.player2_id
+            ? match.player1_id
+            : null;
+      } else if (score1 > score2) {
+        winner_id = match.player1_id;
+      } else if (score2 > score1) {
+        winner_id = match.player2_id;
+      }
+
+      // Replace match_games
+      const { error: delErr } = await supabaseTyped
+        .from("match_games")
+        .delete()
+        .eq("match_id", matchId);
+      if (delErr) throw delErr;
+
+      const gameRows = sortedGames.map((g) => ({
+        match_id: matchId,
+        game_number: g.game_number,
+        p1_score: g.p1_score,
+        p2_score: g.p2_score,
+      }));
+      const { error: insErr } = await supabaseTyped
+        .from("match_games")
+        .insert(gameRows as never);
+      if (insErr) throw insErr;
+
+      // Update match row
+      const { error: updErr } = await supabaseTyped
+        .from("matches")
+        .update({
+          score1,
+          score2,
+          status: "Completed",
+          winner_id,
+          forfeit_by: forfeitBy ?? null,
+        } as never)
+        .eq("id", matchId);
+      if (updErr) throw updErr;
+    },
+    onSuccess: (_, { tournamentId, matchId }) => {
+      queryClient.invalidateQueries({ queryKey: ["matches", tournamentId] });
+      queryClient.invalidateQueries({ queryKey: ["match_games", matchId] });
+    },
+  });
+};
