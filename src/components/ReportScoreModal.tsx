@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { MatchRow, useUpdateMatchScore } from "@/hooks/useData";
+import { MatchRow, useReportMatchScore, useMatchGames } from "@/hooks/useData";
 import { toast } from "sonner";
 
 interface ReportScoreModalProps {
@@ -9,81 +9,111 @@ interface ReportScoreModalProps {
 }
 
 const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
-  // Determine if this is a playoff match (string round) or group stage (numeric round)
-  const isPlayoff = typeof match.round === 'string';
-  const numGames = isPlayoff ? 5 : 3;
-  const gamesNeededToWin = isPlayoff ? 3 : 2;
+  const bestOf = match.best_of ?? 5;
+  const gamesNeededToWin = Math.ceil(bestOf / 2);
 
-  // Initialize game scores state
-  const [gameScores, setGameScores] = useState<Array<{ p1: string; p2: string }>>(
-    Array(numGames).fill(null).map((_, i) => {
-      // Try to load existing scores if match already has results
-      return { p1: "", p2: "" };
-    })
+  const [games, setGames] = useState<Array<{ p1: string; p2: string }>>(
+    Array.from({ length: bestOf }, () => ({ p1: "", p2: "" }))
   );
+  const [isForfeit, setIsForfeit] = useState(!!match.forfeit_by);
+  const [forfeitBy, setForfeitBy] = useState<string>(match.forfeit_by ?? "");
+  const mutation = useReportMatchScore();
+  const { data: existingGames } = useMatchGames(match.id);
 
-  const [isForfeit, setIsForfeit] = useState(false);
-  const [forfeitBy, setForfeitBy] = useState("");
-  const mutation = useUpdateMatchScore();
-
-  // Calculate match score based on game wins
-  const calculateMatchScore = () => {
-    let player1Wins = 0;
-    let player2Wins = 0;
-
-    for (const game of gameScores) {
-      const p1Score = parseInt(game.p1);
-      const p2Score = parseInt(game.p2);
-      
-      if (isNaN(p1Score) || isNaN(p2Score)) continue;
-      
-      if (p1Score > p2Score) {
-        player1Wins++;
-      } else if (p2Score > p1Score) {
-        player2Wins++;
+  // Pre-fill from existing match_games
+  useEffect(() => {
+    if (!existingGames || existingGames.length === 0) return;
+    setGames((prev) => {
+      const next = prev.map((g) => ({ ...g }));
+      for (const g of existingGames as Array<{
+        game_number: number;
+        p1_score: number;
+        p2_score: number;
+      }>) {
+        const idx = g.game_number - 1;
+        if (idx >= 0 && idx < next.length) {
+          next[idx] = { p1: String(g.p1_score), p2: String(g.p2_score) };
+        }
       }
-    }
+      return next;
+    });
+  }, [existingGames]);
 
-    return { player1Wins, player2Wins };
+  const calculateMatchScore = () => {
+    let p1Wins = 0;
+    let p2Wins = 0;
+    for (const g of games) {
+      const a = parseInt(g.p1);
+      const b = parseInt(g.p2);
+      if (isNaN(a) || isNaN(b)) continue;
+      if (a > b) p1Wins++;
+      else if (b > a) p2Wins++;
+    }
+    return { p1Wins, p2Wins };
   };
 
-  const handleGameScoreChange = (gameIndex: number, player: 'p1' | 'p2', value: string) => {
-    const newScores = [...gameScores];
-    newScores[gameIndex] = { ...newScores[gameIndex], [player]: value };
-    setGameScores(newScores);
+  const updateGame = (idx: number, field: "p1" | "p2", value: string) => {
+    setGames((prev) => {
+      const next = [...prev];
+      next[idx] = { ...next[idx], [field]: value };
+      return next;
+    });
   };
 
   const handleSave = () => {
-    // Validate all game scores are entered
-    let allGamesEntered = true;
-    for (const game of gameScores) {
-      if (game.p1.trim() === "" || game.p2.trim() === "") {
-        allGamesEntered = false;
-        break;
+    // Collect entered games
+    const entered: Array<{ game_number: number; p1_score: number; p2_score: number }> = [];
+    for (let i = 0; i < games.length; i++) {
+      const g = games[i];
+      const p1Empty = g.p1.trim() === "";
+      const p2Empty = g.p2.trim() === "";
+      if (p1Empty && p2Empty) continue;
+      if (p1Empty || p2Empty) {
+        toast.error(`Game ${i + 1}: enter both scores or leave both empty`);
+        return;
       }
+      const a = parseInt(g.p1);
+      const b = parseInt(g.p2);
+      if (isNaN(a) || isNaN(b) || a < 0 || b < 0) {
+        toast.error(`Game ${i + 1}: invalid score`);
+        return;
+      }
+      if (a === b && !isForfeit) {
+        toast.error(`Game ${i + 1}: ties are not allowed`);
+        return;
+      }
+      entered.push({ game_number: i + 1, p1_score: a, p2_score: b });
     }
 
-    if (!allGamesEntered) {
-      toast.error("Please enter all game scores");
+    if (entered.length === 0) {
+      toast.error("Enter at least one game");
       return;
     }
 
-    // Validate scores are valid
-    for (const game of gameScores) {
-      if (isNaN(parseInt(game.p1)) || isNaN(parseInt(game.p2))) {
-        toast.error("Please enter valid scores");
+    // Ensure contiguous
+    for (let i = 0; i < entered.length; i++) {
+      if (entered[i].game_number !== i + 1) {
+        toast.error("Games must be entered in order with no gaps");
         return;
       }
     }
 
-    const { player1Wins, player2Wins } = calculateMatchScore();
+    if (isForfeit && !forfeitBy) {
+      toast.error("Select who forfeited");
+      return;
+    }
+
+    const { p1Wins, p2Wins } = calculateMatchScore();
+    if (!isForfeit && p1Wins < gamesNeededToWin && p2Wins < gamesNeededToWin) {
+      toast.warning("No player has reached the required wins yet — saving anyway.");
+    }
 
     mutation.mutate(
       {
         matchId: match.id,
-        score1: player1Wins,
-        score2: player2Wins,
+        games: entered,
         forfeitBy: isForfeit ? forfeitBy || null : null,
+        tournamentId: match.tournament_id,
       },
       {
         onSuccess: () => {
@@ -95,6 +125,8 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
     );
   };
 
+  const totals = calculateMatchScore();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 backdrop-blur-sm" onClick={onClose}>
       <div onClick={(e) => e.stopPropagation()} className="relative w-full max-w-2xl rounded-2xl border bg-card/95 p-6 shadow-2xl backdrop-blur-md max-h-[90vh] overflow-y-auto">
@@ -103,30 +135,30 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
         </button>
         <h2 className="mb-2 text-lg font-extrabold text-primary">Report Score</h2>
         <p className="mb-4 text-xs text-muted-foreground">
-          {isPlayoff ? "Best of 5 (First to 3 wins)" : "Best of 3 (First to 2 wins)"}
+          Best of {bestOf} (First to {gamesNeededToWin} wins). Leave unplayed games blank.
         </p>
 
         <div className="space-y-3 mb-6">
-          {Array.from({ length: numGames }).map((_, gameIndex) => (
-            <div key={gameIndex} className="flex items-center gap-3 p-3 rounded-lg bg-muted/20">
-              <span className="text-xs font-semibold text-muted-foreground w-12">Game {gameIndex + 1}:</span>
+          {games.map((g, idx) => (
+            <div key={idx} className="flex items-center gap-3 p-3 rounded-lg bg-muted/20">
+              <span className="text-xs font-semibold text-muted-foreground w-14">Game {idx + 1}:</span>
               <div className="flex-1 flex items-center gap-2">
                 <input
-                  value={gameScores[gameIndex]?.p1 || ""}
-                  onChange={(e) => handleGameScoreChange(gameIndex, 'p1', e.target.value)}
+                  value={g.p1}
+                  onChange={(e) => updateGame(idx, "p1", e.target.value)}
                   type="number"
                   min={0}
                   className="w-16 rounded-lg border bg-muted/30 py-2 px-2 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="0"
+                  placeholder=""
                 />
-                <span className="text-xs font-semibold text-muted-foreground">to</span>
+                <span className="text-xs font-semibold text-muted-foreground">-</span>
                 <input
-                  value={gameScores[gameIndex]?.p2 || ""}
-                  onChange={(e) => handleGameScoreChange(gameIndex, 'p2', e.target.value)}
+                  value={g.p2}
+                  onChange={(e) => updateGame(idx, "p2", e.target.value)}
                   type="number"
                   min={0}
                   className="w-16 rounded-lg border bg-muted/30 py-2 px-2 text-center text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="0"
+                  placeholder=""
                 />
               </div>
             </div>
@@ -138,12 +170,12 @@ const ReportScoreModal = ({ match, onClose }: ReportScoreModalProps) => {
           <div className="flex items-center justify-center gap-4">
             <div className="text-center">
               <p className="text-xs text-muted-foreground">{match.player1?.display_name ?? "Player 1"}</p>
-              <p className="text-2xl font-extrabold">{calculateMatchScore().player1Wins}</p>
+              <p className="text-2xl font-extrabold">{totals.p1Wins}</p>
             </div>
             <span className="text-muted-foreground">vs</span>
             <div className="text-center">
               <p className="text-xs text-muted-foreground">{match.player2?.display_name ?? "Player 2"}</p>
-              <p className="text-2xl font-extrabold">{calculateMatchScore().player2Wins}</p>
+              <p className="text-2xl font-extrabold">{totals.p2Wins}</p>
             </div>
           </div>
         </div>
