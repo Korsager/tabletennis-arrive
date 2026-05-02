@@ -184,24 +184,38 @@ export const usePlayoffMatches = (tournamentId: string | null) =>
     queryKey: ["playoff_matches", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
-      const tournamentPlayoffs = tournamentId === "t1" ? mockPlayoffBracket : [];
-
-      return tournamentPlayoffs.map(p => ({
-        id: p.id,
-        tournament_id: tournamentId!,
-        round: p.round,
-        player1_id: p.player1,
-        player2_id: p.player2,
-        score1: p.score1,
-        score2: p.score2,
-        winner_id: p.winner,
-        created_at: "2025-01-01T00:00:00Z",
-        updated_at: "2025-01-01T00:00:00Z",
-        player1: p.player1 ? { id: p.player1, display_name: mockPlayers.find(pl => pl.id === p.player1)?.name || "" } : null,
-        player2: p.player2 ? { id: p.player2, display_name: mockPlayers.find(pl => pl.id === p.player2)?.name || "" } : null,
-        winner: p.winner ? { id: p.winner, display_name: mockPlayers.find(pl => pl.id === p.winner)?.name || "" } : null,
-      })) as unknown as PlayoffMatchRow[];
+      try {
+        const { data, error } = await supabaseTyped
+          .from("playoff_matches")
+          .select(
+            "*, player1:profiles!playoff_matches_player1_id_fkey(id, display_name), player2:profiles!playoff_matches_player2_id_fkey(id, display_name), winner:profiles!playoff_matches_winner_id_fkey(id, display_name)"
+          )
+          .eq("tournament_id", tournamentId!)
+          .order("bracket_slot", { ascending: true });
+        if (error) throw error;
+        return (data ?? []) as unknown as PlayoffMatchRow[];
+      } catch {
+        // Fallback to mock for demo tournaments
+        const tournamentPlayoffs = tournamentId === "t1" ? mockPlayoffBracket : [];
+        return tournamentPlayoffs.map((p) => ({
+          id: p.id,
+          tournament_id: tournamentId!,
+          round: p.round,
+          player1_id: p.player1,
+          player2_id: p.player2,
+          score1: p.score1,
+          score2: p.score2,
+          winner_id: p.winner,
+          scheduled_at: null,
+          best_of: 5,
+          bracket_slot: null,
+          feeds_into_slot: null,
+          feeds_into_position: null,
+          player1: p.player1 ? { id: p.player1, display_name: mockPlayers.find(pl => pl.id === p.player1)?.name || "" } : null,
+          player2: p.player2 ? { id: p.player2, display_name: mockPlayers.find(pl => pl.id === p.player2)?.name || "" } : null,
+          winner: p.winner ? { id: p.winner, display_name: mockPlayers.find(pl => pl.id === p.winner)?.name || "" } : null,
+        })) as unknown as PlayoffMatchRow[];
+      }
     },
   });
 
