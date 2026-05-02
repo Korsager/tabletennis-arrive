@@ -10,6 +10,7 @@ import RulesAdmin from "@/components/RulesAdmin";
 import ReportScoreModal from "@/components/ReportScoreModal";
 import PlayerHistoryModal from "@/components/PlayerHistoryModal";
 import CreateTournamentModal from "@/components/CreateTournamentModal";
+import GenerateMatchesModal from "@/components/GenerateMatchesModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants, useTournamentMatchApprovals, useApproveMatchResult } from "@/hooks/useData";
 
@@ -43,6 +44,8 @@ const Tournament = () => {
   const [reportMatch, setReportMatch] = useState<MatchRow | null>(null);
   const [selectedPlayer, setSelectedPlayer] = useState<ProfileRow | null>(null);
   const [showCreateTournament, setShowCreateTournament] = useState<{ archiveCurrentId?: string } | null>(null);
+  const [showGenerateMatches, setShowGenerateMatches] = useState(false);
+  const currentTournament = tournaments.find((t) => t.id === currentTournamentId);
 
   return (
     <div className="min-h-screen bg-background">
@@ -73,6 +76,7 @@ const Tournament = () => {
             currentUser={profile}
             disputedMatchIds={disputedApprovals.map(a => a.match_id)}
             pendingApprovalMatchIds={matchesPendingApproval.map(m => m.id)}
+            onGenerateMatches={currentTournamentId ? () => setShowGenerateMatches(true) : undefined}
           />
         )}
         {activeTab === "playoffs" && (
@@ -186,6 +190,16 @@ const Tournament = () => {
         <CreateTournamentModal
           archiveCurrentId={showCreateTournament.archiveCurrentId}
           onClose={() => setShowCreateTournament(null)}
+        />
+      )}
+      {showGenerateMatches && currentTournament && (
+        <GenerateMatchesModal
+          tournament={{
+            id: currentTournament.id,
+            name: currentTournament.name,
+            best_of: (currentTournament as { best_of?: number }).best_of ?? 5,
+          }}
+          onClose={() => setShowGenerateMatches(false)}
         />
       )}
     </div>
