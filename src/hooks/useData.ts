@@ -1070,3 +1070,333 @@ export const useReportMatchScore = () => {
     },
   });
 };
+
+// ----- Phase 4: Playoff bracket -----
+
+export const usePlayoffMatchGames = (playoffMatchId: string | null) =>
+  useQuery({
+    queryKey: ["match_games", "playoff", playoffMatchId],
+    enabled: !!playoffMatchId,
+    queryFn: async () => {
+      const { data, error } = await supabaseTyped
+        .from("match_games")
+        .select("*")
+        .eq("playoff_match_id", playoffMatchId!)
+        .order("game_number");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+export const useTournamentPlayoffGames = (tournamentId: string | null) =>
+  useQuery({
+    queryKey: ["match_games", "tournament-playoff", tournamentId],
+    enabled: !!tournamentId,
+    queryFn: async () => {
+      const { data: pm, error: pmErr } = await supabaseTyped
+        .from("playoff_matches")
+        .select("id")
+        .eq("tournament_id", tournamentId!);
+      if (pmErr) throw pmErr;
+      const ids = (pm ?? []).map((m) => m.id);
+      if (ids.length === 0) return [];
+      const { data, error } = await supabaseTyped
+        .from("match_games")
+        .select("*")
+        .in("playoff_match_id", ids)
+        .order("game_number");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+/**
+ * Computes seeded standings for a tournament's group stage.
+ * Returns players sorted best-first, optionally with their group_name.
+ */
+async function fetchTournamentStandings(tournamentId: string): Promise<
+  Array<{ profile_id: string; group_name: string | null; points: number; gameDiff: number; display_name: string }>
+> {
+  const { data: parts, error: pErr } = await supabaseTyped
+    .from("tournament_participants")
+    .select("profile_id, group_name, profile:profiles!tournament_participants_profile_id_fkey(id, display_name, elo)")
+    .eq("tournament_id", tournamentId);
+  if (pErr) throw pErr;
+
+  const { data: matches, error: mErr } = await supabaseTyped
+    .from("matches")
+    .select("*")
+    .eq("tournament_id", tournamentId)
+    .eq("match_type", "group");
+  if (mErr) throw mErr;
+
+  type Row = { profile_id: string; group_name: string | null; display_name: string; played: number; points: number; gameDiff: number; elo: number };
+  const stats = new Map<string, Row>();
+  for (const p of (parts ?? []) as Array<{ profile_id: string; group_name: string | null; profile: { id: string; display_name: string; elo: number } | null }>) {
+    stats.set(p.profile_id, {
+      profile_id: p.profile_id,
+      group_name: p.group_name,
+      display_name: p.profile?.display_name ?? "",
+      played: 0,
+      points: 0,
+      gameDiff: 0,
+      elo: p.profile?.elo ?? 1200,
+    });
+  }
+
+  for (const m of (matches ?? []) as Array<{ status: string; player1_id: string | null; player2_id: string | null; score1: number | null; score2: number | null; forfeit_by: string | null }>) {
+    if (m.status !== "Completed" || !m.player1_id || !m.player2_id) continue;
+    const s1 = stats.get(m.player1_id);
+    const s2 = stats.get(m.player2_id);
+    if (!s1 || !s2) continue;
+    const a = m.score1 ?? 0;
+    const b = m.score2 ?? 0;
+    s1.played++; s2.played++;
+    s1.gameDiff += a - b;
+    s2.gameDiff += b - a;
+    if (m.forfeit_by === m.player1_id) { s2.points += 3; s1.points -= 1; }
+    else if (m.forfeit_by === m.player2_id) { s1.points += 3; s2.points -= 1; }
+    else if (a > b) s1.points += 3;
+    else if (b > a) s2.points += 3;
+    else { s1.points += 1; s2.points += 1; }
+  }
+
+  return Array.from(stats.values())
+    .sort((a, b) => b.points - a.points || b.gameDiff - a.gameDiff || b.elo - a.elo)
+    .map((s) => ({
+      profile_id: s.profile_id,
+      group_name: s.group_name,
+      points: s.points,
+      gameDiff: s.gameDiff,
+      display_name: s.display_name,
+    }));
+}
+
+export const useTournamentStandingsPreview = (tournamentId: string | null) =>
+  useQuery({
+    queryKey: ["tournament_standings", tournamentId],
+    enabled: !!tournamentId,
+    queryFn: async () => fetchTournamentStandings(tournamentId!),
+  });
+
+/**
+ * Pick top players by group: top N from each group, then fill from leftover globally.
+ * Returns exactly `size` profile_ids in seed order (1..size).
+ */
+function selectSeeds(
+  standings: Array<{ profile_id: string; group_name: string | null }>,
+  size: number
+): string[] | null {
+  if (standings.length < size) return null;
+  const groups = new Map<string, Array<{ profile_id: string }>>();
+  for (const s of standings) {
+    const key = s.group_name ?? "__default__";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(s);
+  }
+  const groupKeys = Array.from(groups.keys());
+  if (groupKeys.length <= 1) {
+    return standings.slice(0, size).map((s) => s.profile_id);
+  }
+  const perGroup = Math.floor(size / groupKeys.length);
+  const seeded: string[] = [];
+  const remainingPool: string[] = [];
+  for (const k of groupKeys) {
+    const arr = groups.get(k)!;
+    seeded.push(...arr.slice(0, perGroup).map((s) => s.profile_id));
+    remainingPool.push(...arr.slice(perGroup).map((s) => s.profile_id));
+  }
+  // Need to interleave by overall standings order to preserve seeding
+  const seededSet = new Set(seeded);
+  const orderedSeeded = standings.filter((s) => seededSet.has(s.profile_id)).map((s) => s.profile_id);
+  // Fill remaining
+  while (orderedSeeded.length < size && remainingPool.length > 0) {
+    const next = standings.find((s) => remainingPool.includes(s.profile_id) && !orderedSeeded.includes(s.profile_id));
+    if (!next) break;
+    orderedSeeded.push(next.profile_id);
+  }
+  return orderedSeeded.length >= size ? orderedSeeded.slice(0, size) : null;
+}
+
+export const useGeneratePlayoffBracket = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournament_id, size }: { tournament_id: string; size: 4 | 8 }) => {
+      // Existing playoff matches?
+      const { data: existing, error: exErr } = await supabaseTyped
+        .from("playoff_matches")
+        .select("id")
+        .eq("tournament_id", tournament_id);
+      if (exErr) throw exErr;
+      if (existing && existing.length > 0) {
+        throw new Error("Playoff bracket already exists. Delete existing first.");
+      }
+
+      const { data: tournament, error: tErr } = await supabaseTyped
+        .from("tournaments")
+        .select("best_of")
+        .eq("id", tournament_id)
+        .single();
+      if (tErr) throw tErr;
+      const bestOf = tournament?.best_of ?? 5;
+
+      const standings = await fetchTournamentStandings(tournament_id);
+      const seeds = selectSeeds(standings, size);
+      if (!seeds) {
+        throw new Error(`Not enough completed group results to seed a ${size}-player bracket.`);
+      }
+      // seeds[0] is seed 1, seeds[1] is seed 2, etc.
+      const s = (n: number) => seeds[n - 1];
+
+      type Row = {
+        tournament_id: string;
+        round: string;
+        player1_id: string | null;
+        player2_id: string | null;
+        best_of: number;
+        scheduled_at: null;
+        bracket_slot: number;
+        feeds_into_slot: number | null;
+        feeds_into_position: string | null;
+      };
+      const rows: Row[] = [];
+
+      if (size === 4) {
+        // SF1=slot1 (1v4), SF2=slot2 (2v3), Final=slot3
+        rows.push({ tournament_id, round: "SF", player1_id: s(1), player2_id: s(4), best_of: bestOf, scheduled_at: null, bracket_slot: 1, feeds_into_slot: 3, feeds_into_position: "player1" });
+        rows.push({ tournament_id, round: "SF", player1_id: s(2), player2_id: s(3), best_of: bestOf, scheduled_at: null, bracket_slot: 2, feeds_into_slot: 3, feeds_into_position: "player2" });
+        rows.push({ tournament_id, round: "Final", player1_id: null, player2_id: null, best_of: bestOf, scheduled_at: null, bracket_slot: 3, feeds_into_slot: null, feeds_into_position: null });
+      } else {
+        // 8: QF1=1v8, QF2=4v5, QF3=3v6, QF4=2v7
+        rows.push({ tournament_id, round: "QF", player1_id: s(1), player2_id: s(8), best_of: bestOf, scheduled_at: null, bracket_slot: 1, feeds_into_slot: 5, feeds_into_position: "player1" });
+        rows.push({ tournament_id, round: "QF", player1_id: s(4), player2_id: s(5), best_of: bestOf, scheduled_at: null, bracket_slot: 2, feeds_into_slot: 5, feeds_into_position: "player2" });
+        rows.push({ tournament_id, round: "QF", player1_id: s(3), player2_id: s(6), best_of: bestOf, scheduled_at: null, bracket_slot: 3, feeds_into_slot: 6, feeds_into_position: "player1" });
+        rows.push({ tournament_id, round: "QF", player1_id: s(2), player2_id: s(7), best_of: bestOf, scheduled_at: null, bracket_slot: 4, feeds_into_slot: 6, feeds_into_position: "player2" });
+        rows.push({ tournament_id, round: "SF", player1_id: null, player2_id: null, best_of: bestOf, scheduled_at: null, bracket_slot: 5, feeds_into_slot: 7, feeds_into_position: "player1" });
+        rows.push({ tournament_id, round: "SF", player1_id: null, player2_id: null, best_of: bestOf, scheduled_at: null, bracket_slot: 6, feeds_into_slot: 7, feeds_into_position: "player2" });
+        rows.push({ tournament_id, round: "Final", player1_id: null, player2_id: null, best_of: bestOf, scheduled_at: null, bracket_slot: 7, feeds_into_slot: null, feeds_into_position: null });
+      }
+
+      const { error: insErr } = await supabaseTyped.from("playoff_matches").insert(rows as never);
+      if (insErr) throw insErr;
+      return { count: rows.length };
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["playoff_matches", tournament_id] });
+    },
+  });
+};
+
+export const useDeletePlayoffBracket = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournament_id }: { tournament_id: string }) => {
+      // Cascade match_games first
+      const { data: pm } = await supabaseTyped
+        .from("playoff_matches")
+        .select("id")
+        .eq("tournament_id", tournament_id);
+      const ids = (pm ?? []).map((m) => m.id);
+      if (ids.length > 0) {
+        const { error: gErr } = await supabaseTyped
+          .from("match_games")
+          .delete()
+          .in("playoff_match_id", ids);
+        if (gErr) throw gErr;
+      }
+      const { error } = await supabaseTyped
+        .from("playoff_matches")
+        .delete()
+        .eq("tournament_id", tournament_id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["playoff_matches", tournament_id] });
+      queryClient.invalidateQueries({ queryKey: ["match_games", "tournament-playoff", tournament_id] });
+    },
+  });
+};
+
+export const useReportPlayoffScore = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      playoffMatchId,
+      games,
+    }: {
+      playoffMatchId: string;
+      games: ReportMatchGameInput[];
+      tournamentId: string;
+    }) => {
+      if (games.length < 1 || games.length > 5) {
+        throw new Error("Must report between 1 and 5 games.");
+      }
+      const sorted = [...games].sort((a, b) => a.game_number - b.game_number);
+      for (let i = 0; i < sorted.length; i++) {
+        if (sorted[i].game_number !== i + 1) {
+          throw new Error("Game numbers must be contiguous starting from 1.");
+        }
+      }
+      let score1 = 0;
+      let score2 = 0;
+      for (const g of sorted) {
+        if (g.p1_score > g.p2_score) score1++;
+        else if (g.p2_score > g.p1_score) score2++;
+      }
+
+      const { data: pm, error: pmErr } = await supabaseTyped
+        .from("playoff_matches")
+        .select("player1_id, player2_id, tournament_id, feeds_into_slot, feeds_into_position")
+        .eq("id", playoffMatchId)
+        .single();
+      if (pmErr) throw pmErr;
+
+      const winner_id =
+        score1 > score2 ? pm.player1_id : score2 > score1 ? pm.player2_id : null;
+
+      // Replace match_games for this playoff match
+      const { error: delErr } = await supabaseTyped
+        .from("match_games")
+        .delete()
+        .eq("playoff_match_id", playoffMatchId);
+      if (delErr) throw delErr;
+      const { error: insErr } = await supabaseTyped
+        .from("match_games")
+        .insert(
+          sorted.map((g) => ({
+            playoff_match_id: playoffMatchId,
+            game_number: g.game_number,
+            p1_score: g.p1_score,
+            p2_score: g.p2_score,
+          })) as never
+        );
+      if (insErr) throw insErr;
+
+      // Update playoff match
+      const { error: updErr } = await supabaseTyped
+        .from("playoff_matches")
+        .update({ score1, score2, winner_id } as never)
+        .eq("id", playoffMatchId);
+      if (updErr) throw updErr;
+
+      // Advance winner
+      if (winner_id && pm.feeds_into_slot != null && pm.feeds_into_position) {
+        const update: Record<string, unknown> =
+          pm.feeds_into_position === "player1"
+            ? { player1_id: winner_id }
+            : { player2_id: winner_id };
+        const { error: advErr } = await supabaseTyped
+          .from("playoff_matches")
+          .update(update as never)
+          .eq("tournament_id", pm.tournament_id)
+          .eq("bracket_slot", pm.feeds_into_slot);
+        if (advErr) throw advErr;
+      }
+    },
+    onSuccess: (_, { tournamentId, playoffMatchId }) => {
+      queryClient.invalidateQueries({ queryKey: ["playoff_matches", tournamentId] });
+      queryClient.invalidateQueries({ queryKey: ["match_games", "playoff", playoffMatchId] });
+      queryClient.invalidateQueries({ queryKey: ["match_games", "tournament-playoff", tournamentId] });
+    },
+  });
+};
