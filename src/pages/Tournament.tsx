@@ -11,8 +11,10 @@ import ReportScoreModal from "@/components/ReportScoreModal";
 import PlayerHistoryModal from "@/components/PlayerHistoryModal";
 import CreateTournamentModal from "@/components/CreateTournamentModal";
 import GenerateMatchesModal from "@/components/GenerateMatchesModal";
+import GeneratePlayoffsModal from "@/components/GeneratePlayoffsModal";
+import ReportPlayoffScoreModal from "@/components/ReportPlayoffScoreModal";
 import { useAuth } from "@/hooks/useAuth";
-import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants, useTournamentMatchApprovals, useApproveMatchResult } from "@/hooks/useData";
+import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, PlayoffMatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants, useTournamentMatchApprovals, useApproveMatchResult } from "@/hooks/useData";
 
 const Tournament = () => {
   const { id: tournamentIdParam } = useParams<{ id?: string }>();
@@ -46,6 +48,8 @@ const Tournament = () => {
   const [showCreateTournament, setShowCreateTournament] = useState<{ archiveCurrentId?: string } | null>(null);
   const [showGenerateMatches, setShowGenerateMatches] = useState(false);
   const currentTournament = tournaments.find((t) => t.id === currentTournamentId);
+  const [showGeneratePlayoffs, setShowGeneratePlayoffs] = useState(false);
+  const [reportPlayoffMatch, setReportPlayoffMatch] = useState<PlayoffMatchRow | null>(null);
 
   return (
     <div className="min-h-screen bg-background">
@@ -80,7 +84,13 @@ const Tournament = () => {
           />
         )}
         {activeTab === "playoffs" && (
-          <PlayoffsView playoffMatches={playoffMatches} />
+          <PlayoffsView
+            playoffMatches={playoffMatches}
+            tournamentId={currentTournamentId}
+            isAdmin={isAdmin}
+            onGenerateBracket={currentTournamentId ? () => setShowGeneratePlayoffs(true) : undefined}
+            onReportPlayoffScore={setReportPlayoffMatch}
+          />
         )}
         {activeTab === "rankings" && (
           <PowerRankings profiles={tournamentParticipants.map(tp => tp.profile).filter(Boolean)} onPlayerClick={setSelectedPlayer} />
@@ -200,6 +210,23 @@ const Tournament = () => {
             best_of: (currentTournament as { best_of?: number }).best_of ?? 5,
           }}
           onClose={() => setShowGenerateMatches(false)}
+        />
+      )}
+      {showGeneratePlayoffs && currentTournament && (
+        <GeneratePlayoffsModal
+          tournament={{
+            id: currentTournament.id,
+            name: currentTournament.name,
+            best_of: (currentTournament as { best_of?: number }).best_of ?? 5,
+            playoff_size: (currentTournament as { playoff_size?: number | null }).playoff_size ?? null,
+          }}
+          onClose={() => setShowGeneratePlayoffs(false)}
+        />
+      )}
+      {reportPlayoffMatch && (
+        <ReportPlayoffScoreModal
+          match={reportPlayoffMatch}
+          onClose={() => setReportPlayoffMatch(null)}
         />
       )}
     </div>
