@@ -30,6 +30,10 @@ export interface MatchRow {
   status: string;
   forfeit_by: string | null;
   scheduled_at: string | null;
+  match_type: string;
+  group_name: string | null;
+  best_of: number;
+  winner_id: string | null;
   player1: { id: string; display_name: string } | null;
   player2: { id: string; display_name: string } | null;
 }
