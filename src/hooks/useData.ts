@@ -48,6 +48,10 @@ export interface PlayoffMatchRow {
   score2: number | null;
   winner_id: string | null;
   scheduled_at: string | null;
+  best_of: number;
+  bracket_slot: number | null;
+  feeds_into_slot: number | null;
+  feeds_into_position: string | null;
   player1: { id: string; display_name: string } | null;
   player2: { id: string; display_name: string } | null;
   winner: { id: string; display_name: string } | null;
