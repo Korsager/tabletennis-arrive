@@ -97,15 +97,6 @@ const Home = () => {
                   Challenge Player
                 </button>
               )}
-              {/* Dev buttons - remove in production */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => (window as any).simulateAdminLogin()}
-                  className="rounded-lg bg-red-100 px-3 py-1.5 text-xs font-semibold text-red-800 hover:bg-red-200"
-                >
-                  Login as Admin
-                </button>
-              </div>
             </div>
           </div>
         </div>
