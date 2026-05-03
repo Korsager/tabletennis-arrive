@@ -62,7 +62,7 @@ const Tournament = () => {
         onSignOut={signOut}
         userName={profile?.display_name}
       />
-      <TabMenu activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabMenu activeTab={activeTab} onTabChange={setActiveTab} isLoggedIn={!!user} />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
         {activeTab === "league" && (
@@ -97,6 +97,14 @@ const Tournament = () => {
         )}
         {activeTab === "rankings" && (
           <PowerRankings profiles={tournamentParticipants.map(tp => tp.profile).filter(Boolean)} onPlayerClick={setSelectedPlayer} />
+        )}
+        {activeTab === "casual" && user && profile && (
+          <CasualMatchesView
+            userId={user.id}
+            profileId={profile.id}
+            onReportScore={setReportMatch}
+            onCreateCasual={() => setShowCreateCasual(true)}
+          />
         )}
         {activeTab === "rules" && (
           <>
@@ -230,6 +238,12 @@ const Tournament = () => {
         <ReportPlayoffScoreModal
           match={reportPlayoffMatch}
           onClose={() => setReportPlayoffMatch(null)}
+        />
+      )}
+      {showCreateCasual && profile && (
+        <CreateCasualMatchModal
+          currentProfileId={profile.id}
+          onClose={() => setShowCreateCasual(false)}
         />
       )}
     </div>
