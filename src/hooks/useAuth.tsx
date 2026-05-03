@@ -71,23 +71,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
-  // Development function to simulate admin login
-  const simulateAdminLogin = () => {
-    setUser({ id: "admin-user-id" } as any);
-    setProfile({
-      id: "admin-profile-id",
-      display_name: "Admin User",
-      elo: 1500
-    });
-    setIsAdmin(true);
-    setLoading(false);
-  };
-
-  // Expose to window for development
-  useEffect(() => {
-    (window as any).simulateAdminLogin = simulateAdminLogin;
-  }, []);
-
   return (
     <AuthContext.Provider value={{ session, user, profile, isAdmin, loading, signOut }}>
       {children}
