@@ -1414,3 +1414,66 @@ export const useReportPlayoffScore = () => {
     },
   });
 };
+
+// ============= Casual matches =============
+
+export const useCasualMatches = (userId: string | undefined) =>
+  useQuery({
+    queryKey: ["casual_matches", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      // Look up user's profile id first
+      const { data: prof, error: profErr } = await supabaseTyped
+        .from("profiles")
+        .select("id")
+        .eq("user_id", userId!)
+        .maybeSingle();
+      if (profErr) throw profErr;
+      if (!prof) return [] as MatchRow[];
+      const profileId = (prof as { id: string }).id;
+
+      const { data, error } = await supabaseTyped
+        .from("matches")
+        .select(
+          "*, player1:profiles!matches_player1_id_fkey(id, display_name), player2:profiles!matches_player2_id_fkey(id, display_name)"
+        )
+        .eq("match_type", "casual")
+        .or(`player1_id.eq.${profileId},player2_id.eq.${profileId}`)
+        .order("scheduled_at", { ascending: false, nullsFirst: false })
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as MatchRow[];
+    },
+  });
+
+export const useCreateCasualMatch = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      player1_profile_id,
+      player2_profile_id,
+      scheduled_at,
+      best_of,
+    }: {
+      player1_profile_id: string;
+      player2_profile_id: string;
+      scheduled_at: string | null;
+      best_of: number;
+    }) => {
+      const { error } = await supabaseTyped.from("matches").insert({
+        match_type: "casual",
+        tournament_id: null,
+        status: "Pending",
+        round: 0,
+        player1_id: player1_profile_id,
+        player2_id: player2_profile_id,
+        scheduled_at,
+        best_of,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["casual_matches"] });
+    },
+  });
+};
