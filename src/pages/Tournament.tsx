@@ -13,6 +13,8 @@ import CreateTournamentModal from "@/components/CreateTournamentModal";
 import GenerateMatchesModal from "@/components/GenerateMatchesModal";
 import GeneratePlayoffsModal from "@/components/GeneratePlayoffsModal";
 import ReportPlayoffScoreModal from "@/components/ReportPlayoffScoreModal";
+import CasualMatchesView from "@/components/CasualMatchesView";
+import CreateCasualMatchModal from "@/components/CreateCasualMatchModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, usePlayoffMatches, MatchRow, PlayoffMatchRow, ProfileRow, useTournamentRules, useChallengeMatches, useTournamentParticipants, useTournamentMatchApprovals, useApproveMatchResult } from "@/hooks/useData";
 
@@ -50,6 +52,7 @@ const Tournament = () => {
   const currentTournament = tournaments.find((t) => t.id === currentTournamentId);
   const [showGeneratePlayoffs, setShowGeneratePlayoffs] = useState(false);
   const [reportPlayoffMatch, setReportPlayoffMatch] = useState<PlayoffMatchRow | null>(null);
+  const [showCreateCasual, setShowCreateCasual] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
