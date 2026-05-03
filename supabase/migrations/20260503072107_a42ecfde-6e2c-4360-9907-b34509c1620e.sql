@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.update_elo_after_match() FROM PUBLIC, anon, authenticated;
