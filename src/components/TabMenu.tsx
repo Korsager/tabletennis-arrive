@@ -1,21 +1,24 @@
-import { Trophy, Swords, GitBranch, Hash, BookOpen } from "lucide-react";
+import { Trophy, Swords, GitBranch, Hash, BookOpen, Zap } from "lucide-react";
 
-const tabs = [
+const allTabs = [
   { id: "league", label: "League Table", icon: Trophy },
   { id: "matches", label: "Matches", icon: Swords },
   { id: "playoffs", label: "Playoffs", icon: GitBranch },
   { id: "rankings", label: "Seeding", icon: Hash },
+  { id: "casual", label: "Casual", icon: Zap, requiresAuth: true },
   { id: "rules", label: "Rules & Admin", icon: BookOpen },
 ] as const;
 
-export type TabId = (typeof tabs)[number]["id"];
+export type TabId = (typeof allTabs)[number]["id"];
 
 interface TabMenuProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  isLoggedIn?: boolean;
 }
 
-const TabMenu = ({ activeTab, onTabChange }: TabMenuProps) => {
+const TabMenu = ({ activeTab, onTabChange, isLoggedIn = false }: TabMenuProps) => {
+  const tabs = allTabs.filter((t) => !("requiresAuth" in t && t.requiresAuth) || isLoggedIn);
   return (
     <div className="sticky top-[57px] z-40 border-b bg-card/90 backdrop-blur-md">
       <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6">
