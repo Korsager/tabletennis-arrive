@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useUpdateTournament,
   useTournamentParticipants,
@@ -59,6 +61,23 @@ const RulesAdmin = ({ isAdmin, tournament, onCreateTournament }: RulesAdminProps
   const addParticipant = useAddTournamentParticipant();
   const removeParticipant = useRemoveTournamentParticipant();
   const updateParticipant = useUpdateTournamentParticipant();
+  const queryClient = useQueryClient();
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedMockData = async () => {
+    if (!confirm("Create a new mock tournament with 8 test players, group matches and a playoff bracket?")) return;
+    setIsSeeding(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase as any).rpc("seed_mock_data");
+    setIsSeeding(false);
+    if (error) {
+      toast.error(error.message || "Failed to seed mock data");
+      return;
+    }
+    toast.success("Mock tournament created");
+    queryClient.invalidateQueries();
+    console.log("Seeded tournament id:", data);
+  };
 
   const [newProfileId, setNewProfileId] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
@@ -159,12 +178,21 @@ const RulesAdmin = ({ isAdmin, tournament, onCreateTournament }: RulesAdminProps
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-extrabold text-primary">Admin Panel</h2>
-            <button
-              onClick={() => onCreateTournament?.(undefined)}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
-            >
-              Create New Tournament
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSeedMockData}
+                disabled={isSeeding}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-50"
+              >
+                {isSeeding ? "Seeding…" : "Seed Mock Data"}
+              </button>
+              <button
+                onClick={() => onCreateTournament?.(undefined)}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-muted"
+              >
+                Create New Tournament
+              </button>
+            </div>
           </div>
 
           {tournament ? (
