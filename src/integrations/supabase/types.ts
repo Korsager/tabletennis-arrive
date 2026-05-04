@@ -379,6 +379,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      seed_mock_data: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
