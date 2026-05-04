@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Swords, Trophy, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
-import ChallengeModal from "@/components/ChallengeModal";
+import CreateCasualMatchModal from "@/components/CreateCasualMatchModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useTournaments, useMatches, useProfiles, useChallengeMatches, useRegisterForTournament, useTournamentParticipants, MatchRow, ChallengeMatchRow } from "@/hooks/useData";
 
@@ -292,8 +292,11 @@ const Home = () => {
         </div>
       </main>
 
-      {showChallengeModal && (
-        <ChallengeModal profiles={profiles} onClose={() => setShowChallengeModal(false)} />
+      {showChallengeModal && profile && (
+        <CreateCasualMatchModal
+          currentProfileId={profile.id}
+          onClose={() => setShowChallengeModal(false)}
+        />
       )}
     </div>
   );
