@@ -42,13 +42,16 @@ const Home = () => {
     // Add completed tournament matches
   ];
 
-  const upcomingTournaments = tournaments.filter(t => !t.active && new Date(t.start_date) > new Date()).sort((a, b) => 
-    new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-  );
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const previousTournaments = tournaments.filter(t => !t.active).sort((a, b) => 
-    new Date(b.end_date).getTime() - new Date(a.end_date).getTime()
-  );
+  const upcomingTournaments = tournaments
+    .filter(t => t.id !== activeTournament?.id && new Date(t.start_date) > startOfToday)
+    .sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime());
+
+  const previousTournaments = tournaments
+    .filter(t => t.id !== activeTournament?.id && new Date(t.end_date) < startOfToday)
+    .sort((a, b) => new Date(b.end_date).getTime() - new Date(a.end_date).getTime());
 
   // Get top 5 players
   const top5Players = [...profiles]
