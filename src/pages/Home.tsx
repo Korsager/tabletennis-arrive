@@ -229,9 +229,18 @@ const Home = () => {
                       View Tournament
                     </Link>
                     {isRegisteredForActive && (
-                      <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-semibold text-green-800">
-                        ✓ Registered
-                      </div>
+                      <>
+                        <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-semibold text-green-800 text-center">
+                          ✓ Already signed up
+                        </div>
+                        <button
+                          onClick={() => handleUnregisterTournament(activeTournament)}
+                          disabled={isUnregistering}
+                          className="rounded-lg border border-destructive px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                        >
+                          {isUnregistering ? "Removing..." : "Remove registration"}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
