@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import Navbar from "@/components/Navbar";
 import CreateCasualMatchModal from "@/components/CreateCasualMatchModal";
 import { useAuth } from "@/hooks/useAuth";
-import { useTournaments, useMatches, useProfiles, useChallengeMatches, useRegisterForTournament, useTournamentParticipants, MatchRow, ChallengeMatchRow } from "@/hooks/useData";
+import { useTournaments, useMatches, useProfiles, useChallengeMatches, useRegisterForTournament, useUnregisterFromTournament, useTournamentParticipants, useMyTournamentParticipations, MatchRow, ChallengeMatchRow } from "@/hooks/useData";
 
 const Home = () => {
   const { user, profile, isAdmin, loading: authLoading, signOut } = useAuth();
@@ -21,6 +21,8 @@ const Home = () => {
   // Get registration status
   const { data: participants = [] } = useTournamentParticipants(activeTournament?.id ?? null);
   const { mutate: registerForTournament, isPending: isRegistering } = useRegisterForTournament();
+  const { mutate: unregisterFromTournament, isPending: isUnregistering } = useUnregisterFromTournament();
+  const { data: myParticipations = [] } = useMyTournamentParticipations(profile?.id);
   
   const isRegisteredForActive = activeTournament && participants.some(p => p.profile_id === profile?.id);
 
@@ -64,6 +66,14 @@ const Home = () => {
     }
 
     registerForTournament({
+      tournament_id: tournament.id,
+      profile_id: profile.id,
+    });
+  };
+
+  const handleUnregisterTournament = (tournament: any) => {
+    if (!profile) return;
+    unregisterFromTournament({
       tournament_id: tournament.id,
       profile_id: profile.id,
     });
@@ -252,14 +262,31 @@ const Home = () => {
                           )}
                         </div>
                         <div className="flex flex-col gap-2">
-                          {user && tournament.signup_deadline && new Date() < new Date(tournament.signup_deadline) && (
-                            <button
-                              onClick={() => handleRegisterTournamentForUpcoming(tournament)}
-                              disabled={isRegistering}
-                              className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-green-700 disabled:opacity-50"
-                            >
-                              {isRegistering ? "Registering..." : "Sign Up"}
-                            </button>
+                          {user && profile && (
+                            myParticipations.includes(tournament.id) ? (
+                              <>
+                                <div className="rounded-lg bg-green-100 px-4 py-2 text-sm font-semibold text-green-800 text-center">
+                                  ✓ Already signed up
+                                </div>
+                                <button
+                                  onClick={() => handleUnregisterTournament(tournament)}
+                                  disabled={isUnregistering}
+                                  className="rounded-lg border border-destructive px-4 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+                                >
+                                  {isUnregistering ? "Removing..." : "Remove registration"}
+                                </button>
+                              </>
+                            ) : (
+                              tournament.signup_deadline && new Date() < new Date(tournament.signup_deadline) && (
+                                <button
+                                  onClick={() => handleRegisterTournamentForUpcoming(tournament)}
+                                  disabled={isRegistering}
+                                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-green-700 disabled:opacity-50"
+                                >
+                                  {isRegistering ? "Registering..." : "Sign Up"}
+                                </button>
+                              )
+                            )
                           )}
                         </div>
                       </div>
