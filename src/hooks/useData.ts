@@ -119,7 +119,7 @@ export const useProfiles = () =>
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("id, user_id, display_name, elo")
+          .select("id, user_id, display_name, elo, visible_in_ranking")
           .order("elo", { ascending: false });
 
         if (error) throw error;
@@ -135,7 +135,10 @@ export const useProfiles = () =>
           })) as ProfileRow[];
         }
 
-        return data.map((d: any) => ({ ...d, visible_in_ranking: true })) as ProfileRow[];
+        return data.map((d: any) => ({
+          ...d,
+          visible_in_ranking: d.visible_in_ranking ?? true,
+        })) as ProfileRow[];
       } catch (err) {
         // Fall back to mock data on any error
         return mockPlayers.map(player => ({
@@ -614,11 +617,14 @@ export const useUpdateProfileVisibility = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ profileId, visible }: { profileId: string; visible: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({ visible_in_ranking: visible })
-        .eq("id", profileId);
+        .eq("id", profileId)
+        .select()
+        .single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
