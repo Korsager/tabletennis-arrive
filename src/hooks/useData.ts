@@ -617,11 +617,14 @@ export const useUpdateProfileVisibility = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ profileId, visible }: { profileId: string; visible: boolean }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .update({ visible_in_ranking: visible })
-        .eq("id", profileId);
+        .eq("id", profileId)
+        .select()
+        .single();
       if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["profiles"] });
