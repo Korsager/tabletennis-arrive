@@ -396,9 +396,42 @@ export const useRegisterForTournament = () => {
     },
     onSuccess: (_, { tournament_id }) => {
       queryClient.invalidateQueries({ queryKey: ["tournament_participants", tournament_id] });
+      queryClient.invalidateQueries({ queryKey: ["my_tournament_participations"] });
     },
   });
 };
+
+export const useUnregisterFromTournament = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ tournament_id, profile_id }: { tournament_id: string; profile_id: string }) => {
+      const { error } = await supabase
+        .from("tournament_participants")
+        .delete()
+        .eq("tournament_id", tournament_id)
+        .eq("profile_id", profile_id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { tournament_id }) => {
+      queryClient.invalidateQueries({ queryKey: ["tournament_participants", tournament_id] });
+      queryClient.invalidateQueries({ queryKey: ["my_tournament_participations"] });
+    },
+  });
+};
+
+export const useMyTournamentParticipations = (profileId: string | null | undefined) =>
+  useQuery({
+    queryKey: ["my_tournament_participations", profileId],
+    enabled: !!profileId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("tournament_participants")
+        .select("tournament_id")
+        .eq("profile_id", profileId as string);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.tournament_id as string);
+    },
+  });
 
 export const useUpdateRankingVisibility = () => {
   const queryClient = useQueryClient();
