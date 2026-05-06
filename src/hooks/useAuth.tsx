@@ -38,9 +38,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (session?.user) {
           // Fetch profile and role using setTimeout to avoid deadlock
           setTimeout(async () => {
-            const { data: profileData } = await supabase
+            const { data: profileData } = await (supabase as any)
               .from("profiles")
-              .select("id, display_name, elo")
+              .select("id, display_name, elo, visible_in_ranking, user_id")
               .eq("user_id", session.user.id)
               .single();
             setProfile(profileData);
