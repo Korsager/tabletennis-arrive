@@ -580,7 +580,10 @@ export const useTournamentMatchApprovals = (tournamentId: string | null) =>
     queryKey: ["tournament_match_approvals", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
+      // Demo tournaments use mock data; real tournaments have no approvals table yet
+      if (tournamentId !== "t1" && tournamentId !== "t4") {
+        return [] as MatchApprovalRow[];
+      }
       const tournamentMatches = mockMatches.filter(m => {
         if (tournamentId === "t1") return true;
         if (tournamentId === "t4") return m.id.startsWith("wm");
