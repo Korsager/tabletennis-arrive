@@ -117,18 +117,7 @@ export const useTournaments = () =>
         created_at: t.created_at,
         updated_at: t.updated_at,
       }));
-      const mocks = mockTournaments.map((t) => ({
-        id: t.id,
-        name: t.name,
-        description: t.description,
-        start_date: t.startDate,
-        end_date: t.endDate,
-        active: t.active,
-        signup_deadline: t.signup_deadline,
-        created_at: "2025-01-01T00:00:00Z",
-        updated_at: "2025-01-01T00:00:00Z",
-      }));
-      return [...dbTournaments, ...mocks];
+      return dbTournaments;
     },
   });
 
