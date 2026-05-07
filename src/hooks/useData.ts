@@ -157,30 +157,39 @@ export const useMatches = (tournamentId: string | null) =>
     queryKey: ["matches", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
-      const tournamentMatches = mockMatches.filter(m => {
-        // For active tournament (t1), return all matches
-        // For finished tournament (t4), return winter2025Matches
-        if (tournamentId === "t1") return true;
-        if (tournamentId === "t4") return m.id.startsWith("wm");
-        return false;
-      });
+      // Demo tournaments use mock data
+      if (tournamentId === "t1" || tournamentId === "t4") {
+        const tournamentMatches = mockMatches.filter(m => {
+          if (tournamentId === "t1") return true;
+          if (tournamentId === "t4") return m.id.startsWith("wm");
+          return false;
+        });
+        return tournamentMatches.map(m => ({
+          id: m.id,
+          tournament_id: tournamentId!,
+          round: m.round,
+          player1_id: m.player1,
+          player2_id: m.player2,
+          score1: m.score1,
+          score2: m.score2,
+          status: m.status,
+          forfeit_by: m.forfeitBy,
+          created_at: "2025-01-01T00:00:00Z",
+          updated_at: "2025-01-01T00:00:00Z",
+          player1: { id: m.player1, display_name: mockPlayers.find(p => p.id === m.player1)?.name || "" },
+          player2: { id: m.player2, display_name: mockPlayers.find(p => p.id === m.player2)?.name || "" },
+        })) as unknown as MatchRow[];
+      }
 
-      return tournamentMatches.map(m => ({
-        id: m.id,
-        tournament_id: tournamentId!,
-        round: m.round,
-        player1_id: m.player1,
-        player2_id: m.player2,
-        score1: m.score1,
-        score2: m.score2,
-        status: m.status,
-        forfeit_by: m.forfeitBy,
-        created_at: "2025-01-01T00:00:00Z",
-        updated_at: "2025-01-01T00:00:00Z",
-        player1: { id: m.player1, display_name: mockPlayers.find(p => p.id === m.player1)?.name || "" },
-        player2: { id: m.player2, display_name: mockPlayers.find(p => p.id === m.player2)?.name || "" },
-      })) as unknown as MatchRow[];
+      const { data, error } = await supabaseTyped
+        .from("matches")
+        .select(
+          "*, player1:profiles!matches_player1_id_fkey(id, display_name), player2:profiles!matches_player2_id_fkey(id, display_name), winner:profiles!matches_winner_id_fkey(id, display_name)"
+        )
+        .eq("tournament_id", tournamentId!)
+        .order("round", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as MatchRow[];
     },
   });
 
@@ -571,7 +580,10 @@ export const useTournamentMatchApprovals = (tournamentId: string | null) =>
     queryKey: ["tournament_match_approvals", tournamentId],
     enabled: !!tournamentId,
     queryFn: async () => {
-      // Force mock data for now to bypass database
+      // Demo tournaments use mock data; real tournaments have no approvals table yet
+      if (tournamentId !== "t1" && tournamentId !== "t4") {
+        return [] as MatchApprovalRow[];
+      }
       const tournamentMatches = mockMatches.filter(m => {
         if (tournamentId === "t1") return true;
         if (tournamentId === "t4") return m.id.startsWith("wm");
