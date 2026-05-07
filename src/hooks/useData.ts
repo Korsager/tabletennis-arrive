@@ -95,20 +95,29 @@ export interface TournamentRulesRow {
 
 export const useTournaments = () =>
   useQuery({
-    queryKey: ["tournaments", "v4"], // Updated version
+    queryKey: ["tournaments", "v5"],
     queryFn: async () => {
-      // Force mock data for now to bypass database
-      return mockTournaments.map(t => ({
+      const { data, error } = await supabase
+        .from("tournaments")
+        .select("*")
+        .order("start_date", { ascending: false });
+      if (error) throw error;
+      const dbTournaments = (data ?? []).map((t) => ({
         id: t.id,
         name: t.name,
-        description: t.description,
-        start_date: t.startDate,
-        end_date: t.endDate,
+        description: (t as { description?: string }).description ?? null,
+        start_date: t.start_date,
+        end_date: t.end_date,
         active: t.active,
-        signup_deadline: t.signup_deadline,
-        created_at: "2025-01-01T00:00:00Z",
-        updated_at: "2025-01-01T00:00:00Z",
+        signup_deadline: (t as { signup_deadline?: string | null }).signup_deadline ?? null,
+        best_of: t.best_of,
+        playoff_size: t.playoff_size,
+        group_count: t.group_count,
+        rules: t.rules,
+        created_at: t.created_at,
+        updated_at: t.updated_at,
       }));
+      return dbTournaments;
     },
   });
 
