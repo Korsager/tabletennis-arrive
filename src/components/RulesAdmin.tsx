@@ -302,6 +302,7 @@ const RulesAdmin = ({ isAdmin, tournament, onCreateTournament }: RulesAdminProps
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-extrabold text-primary">Tournament Participants</h2>
 
+          {!tournament.active && (
           <div className="mb-6 grid gap-3 sm:grid-cols-[1fr_120px_100px_auto]">
             <select
               value={newProfileId}
@@ -336,6 +337,7 @@ const RulesAdmin = ({ isAdmin, tournament, onCreateTournament }: RulesAdminProps
               Add Participant
             </button>
           </div>
+          )}
 
           {participants.length === 0 ? (
             <p className="text-sm text-muted-foreground">No participants yet.</p>
