@@ -1,19 +1,25 @@
-## Root cause
+## Problem
 
-The "Challenge a Player" form sends `player2_id: "p7"` to the `matches` table, which has a UUID column — hence `invalid input syntax for type uuid: "p7"`.
+Saving a score fails with `invalid input syntax for type uuid: "m3"`.
 
-The `"p7"` value originates from `useProfiles()` in `src/hooks/useData.ts`. That hook selects a column `visible_in_ranking` that does not exist on `public.profiles`, so the request 400s and the hook silently falls back to `mockPlayers` (`p1`…`p40`). The opponent dropdown then lists mock entries and submits their non-UUID ids.
+Root cause: `useMatches` in `src/hooks/useData.ts` (and `useTournamentMatchApprovals`) currently bypass the database and return hardcoded mock rows with IDs like `"m3"`, `"p7"`. When the user clicks Save, `useReportMatchScore` tries to `UPDATE matches WHERE id = 'm3'` against Supabase, where `id` is a `uuid`, causing the SQL error. The database actually has 0 matches, so the mock-only path was hiding the empty state.
 
 ## Fix
 
-1. In `src/hooks/useData.ts` `useProfiles()`:
-   - Remove `visible_in_ranking` from the `select(...)` (the column doesn't exist in DB).
-   - Map results to `ProfileRow` with `visible_in_ranking: true` defaulted in JS.
-   - Keep the mock-data fallback only for the truly empty case (no rows), not for query errors that we just caused ourselves.
+In `src/hooks/useData.ts`:
 
-After this, the dropdown will show real DB profiles (whose ids are valid UUIDs) and the casual-match insert will succeed.
+1. **`useMatches(tournamentId)`** — query `matches` from Supabase (joined with `player1`, `player2`, `winner` profiles like `usePlayoffMatches` already does). Fall back to the existing mock data only when the tournament id is one of the demo ids (`t1`, `t4`) or when the query returns no rows for those demo ids — never for real UUID tournaments.
 
-## Notes
+2. **`useTournamentMatchApprovals(tournamentId)`** — query `match_approvals` joined to `matches` and `profiles` from Supabase. Keep the mock fallback only for the demo `t1`/`t4` ids.
 
-- No DB migration needed; `visible_in_ranking` was never created.
-- Other 400s seen in logs (`tournament_id=eq.t1`) come from the same mock-data fallback elsewhere; those are pre-existing and out of scope for this fix, which targets only the reported casual-match error.
+3. Leave `useReportMatchScore`, `useMatchGames`, etc. unchanged — they already use Supabase correctly.
+
+## Why this works
+
+Real tournaments (created via the UI or the `seed_mock_data` function) have real UUIDs for both the tournament and its matches, so `useReportMatchScore`'s update will hit a real row. The demo `t1`/`t4` data continues to render as before for the static mock walkthrough.
+
+## Files touched
+
+- `src/hooks/useData.ts` (two query functions)
+
+No DB migration needed — RLS already allows participants/admins to update matches.
