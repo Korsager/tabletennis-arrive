@@ -98,14 +98,6 @@ const Tournament = () => {
         {activeTab === "rankings" && (
           <PowerRankings profiles={tournamentParticipants.map(tp => tp.profile).filter(Boolean)} onPlayerClick={setSelectedPlayer} />
         )}
-        {activeTab === "casual" && user && profile && (
-          <CasualMatchesView
-            userId={user.id}
-            profileId={profile.id}
-            onReportScore={setReportMatch}
-            onCreateCasual={() => setShowCreateCasual(true)}
-          />
-        )}
         {activeTab === "rules" && (
           <>
             <RulesAdmin
