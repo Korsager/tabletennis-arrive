@@ -5,7 +5,6 @@ const allTabs = [
   { id: "matches", label: "Matches", icon: Swords },
   { id: "playoffs", label: "Playoffs", icon: GitBranch },
   { id: "rankings", label: "Seeding", icon: Hash },
-  { id: "casual", label: "Casual", icon: Zap, requiresAuth: true },
   { id: "rules", label: "Rules & Admin", icon: BookOpen },
 ] as const;
 
