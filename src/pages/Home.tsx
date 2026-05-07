@@ -55,7 +55,7 @@ const Home = () => {
 
   // Get top 5 players
   const top5Players = [...profiles]
-
+    .filter((p) => p.visible_in_ranking !== false)
     .sort((a, b) => (b.elo || 0) - (a.elo || 0))
     .slice(0, 5);
 
